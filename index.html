@@ -1,1228 +1,867 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <title>Industry Evolution Simulator - TYCOON EDITION</title>
-    <style>
-        /* --- Mantengo tu CSS original (recortado aquí para brevedad) --- */
-        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Pixelify+Sans:wght@400;700&display=swap');
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Industry Evolution Simulator - Edición Tycoon (ES)</title>
+<style>
+    /* ===== Estilos principales (responsive + pulido) ===== */
+    :root{
+        --bg:#0b0b12; --panel:#121217; --card:#1b1b20; --accent:#00b8ff;
+        --good:#00ff41; --warn:#ffcc00; --danger:#ff4d6d; --muted:#9aa0a6;
+        --border:#444;
+        font-synthesis:none;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%; margin:0; font-family:Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; background:linear-gradient(180deg,#070617 0%, #0f0519 100%); color:#e8eef6;}
+    #gameCanvas{position:absolute; inset:0; width:100%; height:100%; display:block; z-index:0; background:linear-gradient(180deg,#081026 0%, rgba(0,0,0,0.0) 40%);}
+    .ui-overlay{position:relative; z-index:10; display:grid; grid-template-columns:240px 1fr 260px; grid-template-rows: auto 1fr auto; gap:12px; padding:12px; height:100vh; pointer-events:none;}
+    @media (max-width:900px){ .ui-overlay{ grid-template-columns:1fr; grid-template-rows:auto auto 1fr auto; padding:8px; } .left-panel,.right-panel{ width:100%; } }
+    .panel{ background:linear-gradient(180deg,var(--panel),#0f1218); border:2px solid var(--border); padding:10px; border-radius:8px; pointer-events:all; box-shadow:0 6px 20px rgba(0,0,0,0.6); }
+    .left-panel{ grid-column:1; grid-row:1 / span 3; display:flex; flex-direction:column; gap:10px; min-height:0; overflow:auto;}
+    .center-panel{ grid-column:2; grid-row:1; display:flex; gap:10px; align-items:center; justify-content:center; }
+    .middle-big{ grid-column:2; grid-row:2; min-height:0; overflow:auto; padding:12px; display:flex; flex-direction:column; gap:12px; }
+    .right-panel{ grid-column:3; grid-row:1 / span 3; display:flex; flex-direction:column; gap:10px; min-height:0; overflow:auto; }
+    .bottom-panel{ grid-column:1 / span 3; grid-row:3; display:flex; gap:8px; align-items:center; justify-content:center; }
 
-        * { margin:0; padding:0; box-sizing:border-box; image-rendering:pixelated; image-rendering:-moz-crisp-edges; image-rendering:crisp-edges; }
-        :root{
-            --bg-primary: #0a0a0a;
-            --bg-secondary: #1a1a1a;
-            --bg-panel: #2a2a2a;
-            --bg-card: #3a3a3a;
-            --neon-green: #00ff41;
-            --neon-blue: #00b8ff;
-            --neon-yellow: #ffcc00;
-            --neon-red: #ff0040;
-            --pixel-border: #555555;
-            --text-primary: #e0e0e0;
-            --text-secondary: #a0a0a0;
-        }
-        body{
-            font-family: 'Pixelify Sans', monospace;
-            background: radial-gradient(ellipse at center, #1a0033 0%, var(--bg-primary) 100%);
-            color:var(--text-primary);
-            overflow:hidden;
-            height:100vh;
-        }
-        canvas{ display:block; background:var(--bg-secondary); border:3px solid var(--pixel-border); box-shadow:0 0 20px rgba(0,184,255,0.3); }
+    .title{ font-weight:700; color:var(--accent); letter-spacing:1px; font-size:13px; text-transform:uppercase; display:flex; justify-content:space-between; align-items:center; }
+    .stat-row{ display:flex; justify-content:space-between; align-items:center; font-size:13px; color:var(--muted); margin-top:6px; }
+    .bar{ height:10px; background:rgba(255,255,255,0.04); border-radius:6px; overflow:hidden; border:1px solid rgba(255,255,255,0.03); }
+    .fill{ height:100%; width:0%; transition:width .6s ease; }
+    .btn{ display:inline-block; padding:8px 12px; background:linear-gradient(180deg,#14151a,#0f1116); border:1px solid var(--border); color:#e8eef6; border-radius:6px; cursor:pointer; font-weight:700; font-size:13px; text-transform:uppercase; }
+    .btn.primary{ border-color:var(--accent); box-shadow:0 6px 18px rgba(0,184,255,0.08); }
+    .btn.danger{ border-color:var(--danger); }
+    .btn.block{ width:100%; text-align:center; }
 
-        /* UI panels (kept identical to yours) */
-        .ui-overlay{ position:absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:100; }
-        .ui-panel{ position:absolute; background:rgba(26,26,26,0.95); border:3px solid var(--pixel-border); padding:10px; pointer-events:all; transition:transform .3s cubic-bezier(.4,0,.2,1); }
-        .ui-panel.left{ left:0; top:0; width:220px; height:100%; overflow-y:auto;}
-        .ui-panel.right{ right:0; top:0; width:200px; height:100%; overflow-y:auto;}
-        .ui-panel.bottom{ bottom:0; left:50%; transform:translateX(-50%); width:800px; max-width:90%; height:100px;}
-        .ui-panel.center{ top:10px; left:50%; transform:translateX(-50%); width:300px; max-height:200px;}
-        .ui-title{ font-family:'JetBrains Mono', monospace; font-size:12px; font-weight:700; color:var(--neon-blue); margin-bottom:8px; text-transform:uppercase; letter-spacing:1px; text-shadow:0 0 8px var(--neon-blue);}
-        .ui-stat{ display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; font-size:10px;}
-        .ui-stat-label{ color:var(--text-secondary); }
-        .ui-stat-value{ color:var(--neon-green); font-weight:700; }
-        .ui-bar{ width:100%; height:8px; background:var(--bg-panel); border:1px solid var(--pixel-border); position:relative; margin-top:4px; overflow:hidden;}
-        .ui-fill{ height:100%; transition:width .5s ease;}
-        .cash-fill{ background:linear-gradient(90deg,var(--neon-green),#00cc33); }
-        .team-fill{ background:linear-gradient(90deg,var(--neon-blue),#0088cc); }
-        .rep-fill{ background:linear-gradient(90deg,var(--neon-yellow),#cc9900); }
-        .hype-fill{ background:linear-gradient(90deg,var(--neon-purple),#9966cc); }
-        .progress-fill{ background:linear-gradient(90deg,var(--neon-purple),#b967ff); }
-        .pixel-button{ font-family:'Pixelify Sans', monospace; font-size:10px; background:var(--bg-card); border:2px solid var(--pixel-border); color:var(--text-primary); padding:8px 12px; cursor:pointer; transition:all .15s; display:block; width:100%; margin-bottom:6px; text-transform:uppercase;}
-        .pixel-button:hover{ background:var(--neon-blue); color:var(--bg-primary); border-color:var(--neon-blue); transform:translateY(-2px); box-shadow:0 4px 8px rgba(0,184,255,0.3);}
-        .pixel-button:active{ transform:scale(.95); }
-        .pixel-button.danger{ border-color:var(--neon-red); }
-        .pixel-button.success{ border-color:var(--neon-green); }
-        .event-log{ position:absolute; bottom:120px; left:10px; width:300px; max-height:200px; background:rgba(0,0,0,0.7); border:2px solid var(--pixel-border); padding:10px; overflow-y:auto; font-size:9px; z-index:50; }
-        .notification{ position:fixed; top:20px; right:-400px; background:var(--bg-panel); border:2px solid var(--neon-blue); padding:10px 15px; max-width:300px; transition:right .3s cubic-bezier(.4,0,.2,1); z-index:1500;}
-        .notification.show{ right:20px; }
-        .save-indicator{ position:fixed; bottom:20px; right:-200px; background:var(--neon-green); color:var(--bg-primary); padding:8px 12px; font-size:10px; font-weight:700; transition:right .3s; z-index:1500; }
-        .save-indicator.show{ right:20px; }
-        .modal{ position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); display:none; place-items:center; z-index:1000; backdrop-filter: blur(4px); }
-        .modal.active{ display:grid; }
-        .modal-content{ background:var(--bg-panel); border:4px solid var(--neon-blue); padding:20px; max-width:700px; max-height:90vh; overflow-y:auto; animation:modalPop .3s cubic-bezier(.4,0,.2,1); }
-        .modal-title{ font-size:14px; color:var(--neon-blue); margin-bottom:15px; }
-        .selection-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:15px; }
-        .option-tile{ background:var(--bg-card); border:2px solid var(--pixel-border); padding:10px; cursor:pointer; text-align:center; transition:all .2s; font-size:9px; }
-        .option-tile:hover{ border-color:var(--neon-blue); transform:scale(1.05); }
-        .option-tile.selected{ border-color:var(--neon-green); background:rgba(0,255,65,0.1); box-shadow:0 0 15px rgba(0,255,65,0.3); }
-        .stat-box{ flex:1; background:var(--bg-card); border:1px solid var(--pixel-border); padding:8px; margin:0 5px; }
-        .stat-title{ font-size:9px; color:var(--text-secondary); text-align:center; }
-        .stat-value{ font-size:14px; font-weight:700; color:var(--neon-green); text-align:center; }
-        .achievement-popup{ position:fixed; top:50%; left:50%; transform:translate(-50%, -50%) scale(0); background:linear-gradient(135deg,var(--neon-purple),#ff00ff); border:4px solid var(--neon-yellow); padding:20px 30px; z-index:2000; transition:transform .5s cubic-bezier(.68,-0.55,.265,1.55); text-align:center;}
-        .achievement-popup.active{ transform:translate(-50%,-50%) scale(1); }
-        @keyframes modalPop{ from{ transform:scale(.8); opacity:0;} to{ transform:scale(1); opacity:1; } }
-        @media (max-width:1024px){ .ui-panel.left, .ui-panel.right{ width:180px; } .selection-grid{ grid-template-columns:repeat(2,1fr); } }
-    </style>
+    /* Employee list */
+    .employee-card{ background:linear-gradient(180deg,#111218,#0f1216); padding:8px; border-radius:6px; border:1px solid rgba(255,255,255,0.03); margin-bottom:8px; display:flex; gap:10px; align-items:center; }
+    .emp-avatar{ width:46px; height:46px; border-radius:6px; background:linear-gradient(90deg,#2b2b2b,#1b1b1b); display:flex; align-items:center; justify-content:center; font-weight:800; color:#fff; font-size:14px; }
+    .emp-meta{ flex:1; display:flex; flex-direction:column; gap:6px; }
+    .emp-name{ font-weight:700; font-size:13px; }
+    .emp-small{ font-size:11px; color:var(--muted); }
+    .stat-bars{ display:flex; gap:6px; align-items:center; flex-wrap:wrap; }
+    .stat-mini{ font-size:10px; color:var(--muted); width:100%; display:flex; gap:6px; align-items:center; }
+    .bar-mini{ flex:1; height:8px; background:rgba(255,255,255,0.04); border-radius:5px; overflow:hidden; }
+    .bar-mini .fill{ height:100%; width:0; transition:width .4s linear; }
+
+    /* Modales */
+    .modal{ position:fixed; inset:0; display:none; align-items:center; justify-content:center; z-index:2200; background:rgba(2,2,6,0.6); padding:16px; }
+    .modal.active{ display:flex; }
+    .modal-box{ width:100%; max-width:900px; max-height:90vh; overflow:auto; background:linear-gradient(180deg,#101217,#0b0b10); border:2px solid var(--accent); padding:14px; border-radius:8px; }
+    .selection-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
+    @media (max-width:900px){ .selection-grid{ grid-template-columns:repeat(2,1fr); } }
+
+    /* Event log + notifications */
+    #eventLog{ position:fixed; left:12px; bottom:120px; width:320px; max-height:300px; overflow:auto; z-index:2000; pointer-events:none; font-size:12px; }
+    .event-item{ background:rgba(0,0,0,0.45); border-left:4px solid var(--accent); padding:8px; margin-bottom:6px; border-radius:6px; color:var(--muted); }
+    .notif{ position:fixed; right:18px; top:18px; z-index:3000; background:linear-gradient(180deg,#0a0f18,#061023); border:2px solid var(--accent); padding:10px 12px; border-radius:8px; display:none; }
+    .notif.show{ display:block; }
+
+    /* Review modal & lists */
+    .review-grid{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+    @media (max-width:900px){ .review-grid{ grid-template-columns:1fr; } }
+
+    /* Achievement popup */
+    .ach{ position:fixed; left:50%; top:40%; transform:translateX(-50%); padding:12px 16px; background:linear-gradient(90deg,#2b0036,#6b0072); color:white; border-radius:10px; z-index:4000; display:none; }
+    .ach.show{ display:block; }
+
+    /* Small helpers */
+    .muted{ color:var(--muted); font-size:12px; }
+    .small{ font-size:12px; color:var(--muted); }
+</style>
 </head>
 <body>
-    <canvas id="gameCanvas"></canvas>
+<canvas id="gameCanvas"></canvas>
 
-    <div class="ui-overlay">
-        <div class="ui-panel left" id="leftPanel">
-            <div class="ui-title">STUDIO RESOURCES</div>
+<div class="ui-overlay">
+    <div class="panel left-panel">
+        <div class="title">RECURSOS <span id="uiYear">2000-01</span></div>
 
-            <div class="ui-stat">
-                <span class="ui-stat-label">CASH</span>
-                <span class="ui-stat-value" id="uiCash">$500K</span>
-            </div>
-            <div class="ui-bar"><div class="ui-fill cash-fill" id="cashBar" style="width:50%"></div></div>
+        <div class="stat-row"><div class="small">Caja</div><div id="uiCash" class="small">$500K</div></div>
+        <div class="bar"><div id="cashFill" class="fill" style="width:20%;background:linear-gradient(90deg,var(--good),#00cc33)"></div></div>
 
-            <div class="ui-stat">
-                <span class="ui-stat-label">TEAM</span>
-                <span class="ui-stat-value" id="uiTeam">15 / 50</span>
-            </div>
-            <div class="ui-bar"><div class="ui-fill team-fill" id="teamBar" style="width:30%"></div></div>
+        <div class="stat-row"><div class="small">Equipo</div><div id="uiTeam" class="small">3 / 50</div></div>
+        <div class="bar"><div id="teamFill" class="fill" style="width:6%;background:linear-gradient(90deg,var(--accent),#0077cc)"></div></div>
 
-            <div class="ui-stat">
-                <span class="ui-stat-label">REPUTATION</span>
-                <span class="ui-stat-value" id="uiRep">65%</span>
-            </div>
-            <div class="ui-bar"><div class="ui-fill rep-fill" id="repBar" style="width:65%"></div></div>
+        <div class="stat-row"><div class="small">Reputación</div><div id="uiRep" class="small">65%</div></div>
+        <div class="bar"><div id="repFill" class="fill" style="width:65%;background:linear-gradient(90deg,var(--warn),#ffb400)"></div></div>
 
-            <div class="ui-stat">
-                <span class="ui-stat-label">HYPE</span>
-                <span class="ui-stat-value" id="uiHype">30%</span>
-            </div>
-            <div class="ui-bar"><div class="ui-fill hype-fill" id="hypeBar" style="width:30%"></div></div>
+        <div class="stat-row"><div class="small">Hype</div><div id="uiHype" class="small">30%</div></div>
+        <div class="bar"><div id="hypeFill" class="fill" style="width:30%;background:linear-gradient(90deg,#9b59ff,#6a0fb5)"></div></div>
 
-            <button class="pixel-button" onclick="game.hireEmployee()">HIRE STAFF</button>
-            <button class="pixel-button" onclick="game.investMarketing()">MARKETING</button>
-            <button class="pixel-button" onclick="game.researchTech()">TRAIN TEAM</button>
-            <button class="pixel-button" onclick="game.moveOffice()">MOVE OFFICE</button>
-            <button class="pixel-button danger" onclick="game.resetGame()">NEW GAME</button>
-        </div>
+        <div style="height:8px"></div>
 
-        <div class="ui-panel right" id="rightPanel">
-            <div class="ui-title">ACTIVE TEAM</div>
-            <div id="employeeList"></div>
-        </div>
-
-        <div class="ui-panel center" id="activeProjectPanel">
-            <div class="ui-title">ACTIVE PROJECT</div>
-            <div class="project-panel" id="activeProject">
-                <div class="ui-stat">
-                    <span class="ui-stat-label" id="projectName">None</span>
-                    <span class="ui-stat-value" id="projectProgress">0%</span>
-                </div>
-                <div class="ui-bar"><div class="ui-fill progress-fill" id="progressBar" style="width:0%"></div></div>
-            </div>
-            <div class="ui-stat">
-                <span class="ui-stat-label">YEAR</span>
-                <span class="ui-stat-value" id="uiYear">2000</span>
-            </div>
-        </div>
-
-        <div class="ui-panel bottom" id="bottomPanel">
-            <div class="bottom-buttons">
-                <button class="pixel-button danger" onclick="game.toggleCrunch()" id="crunchBtn">
-                    CRUNCH: <span id="crunchStatus">OFF</span>
-                </button>
-                <button class="pixel-button success" onclick="game.startNewProject()" id="newGameBtn">
-                    NEW PROJECT
-                </button>
-                <button class="pixel-button" onclick="game.continueProject()" id="continueBtn" style="display:none;">
-                    CONTINUE DEV
-                </button>
-                <button class="pixel-button" onclick="game.takeContract()">
-                    CONTRACT JOB
-                </button>
-            </div>
-        </div>
-
-        <div class="event-log" id="eventLog"></div>
+        <button class="btn block primary" onclick="game.abrirContratacion()">CONTRATAR</button>
+        <button class="btn block" onclick="game.invertirMarketing()">MARKETING</button>
+        <button class="btn block" onclick="game.entrenarEquipo()">CAPACITAR EQUIPO</button>
+        <button class="btn block" onclick="game.moverOficina()">MEJORAR OFICINA</button>
+        <button class="btn block danger" onclick="game.reiniciarJuego()">NUEVO JUEGO</button>
     </div>
 
-    <!-- NEW PROJECT MODAL (kept as-is) -->
-    <div class="modal" id="newGameModal">
-        <div class="modal-content">
-            <div class="modal-title">CREATE NEW GAME PROJECT</div>
-            <div class="modal-section">
-                <h4>GENRE</h4>
-                <div class="selection-grid">
-                    <div class="option-tile" data-type="genre" data-value="accion" onclick="game.selectOption(this)"><div class="option-icon">🎮</div><div>ACTION</div></div>
-                    <div class="option-tile" data-type="genre" data-value="rpg" onclick="game.selectOption(this)"><div class="option-icon">⚔</div><div>RPG</div></div>
-                    <div class="option-tile" data-type="genre" data-value="estrategia" onclick="game.selectOption(this)"><div class="option-icon">🗺</div><div>STRATEGY</div></div>
-                    <div class="option-tile" data-type="genre" data-value="puzzle" onclick="game.selectOption(this)"><div class="option-icon">🧩</div><div>PUZZLE</div></div>
-                    <div class="option-tile" data-type="genre" data-value="terror" onclick="game.selectOption(this)"><div class="option-icon">👻</div><div>HORROR</div></div>
-                    <div class="option-tile" data-type="genre" data-value="simulacion" onclick="game.selectOption(this)"><div class="option-icon">🏭</div><div>SIMULATION</div></div>
+    <div class="center-panel panel">
+        <div style="width:100%;">
+            <div class="title">PROYECTO ACTIVO <span id="projectMonths" class="small"></span></div>
+            <div style="margin-top:8px;">
+                <div id="activeProjectInfo">
+                    <div class="stat-row"><div id="projectName" class="small">Ninguno</div><div id="projectProgressText" class="small">0%</div></div>
+                    <div class="bar"><div id="projectProgress" class="fill" style="width:0%; background:linear-gradient(90deg,#9b59ff,#6a0fb5)"></div></div>
+                    <div id="projectStats" style="margin-top:8px; display:flex; gap:10px; flex-wrap:wrap;"></div>
                 </div>
             </div>
 
-            <div class="modal-section">
-                <h4>THEME</h4>
-                <div class="selection-grid">
-                    <div class="option-tile" data-type="tema" data-value="espacial" onclick="game.selectOption(this)"><div class="option-icon">🚀</div><div>SPACE</div></div>
-                    <div class="option-tile" data-type="tema" data-value="medieval" onclick="game.selectOption(this)"><div class="option-icon">🏰</div><div>MEDIEVAL</div></div>
-                    <div class="option-tile" data-type="tema" data-value="cyberpunk" onclick="game.selectOption(this)"><div class="option-icon">🌆</div><div>CYBERPUNK</div></div>
-                    <div class="option-tile" data-type="tema" data-value="fantasia" onclick="game.selectOption(this)"><div class="option-icon">🦄</div><div>FANTASY</div></div>
-                    <div class="option-tile" data-type="tema" data-value="zombies" onclick="game.selectOption(this)"><div class="option-icon">🧟</div><div>ZOMBIES</div></div>
-                    <div class="option-tile" data-type="tema" data-value="deportes" onclick="game.selectOption(this)"><div class="option-icon">⚽</div><div>SPORTS</div></div>
-                </div>
+            <div style="margin-top:12px; display:flex; gap:8px; align-items:center;">
+                <button class="btn primary" onclick="game.iniciarProyecto()">NUEVO PROYECTO</button>
+                <button class="btn" onclick="game.continuarMes()">CONTINUAR (1 mes)</button>
+                <button class="btn" id="autoplayBtn" onclick="game.toggleAutoplay()">AUTO: OFF</button>
+                <div style="flex:1"></div>
+                <div class="small">Crunch: <span id="crunchStatus">OFF</span></div>
             </div>
-
-            <div class="modal-section">
-                <h4>PLATFORM</h4>
-                <div class="selection-grid">
-                    <div class="option-tile" data-type="plataforma" data-value="pc" onclick="game.selectOption(this)"><div class="option-icon">💻</div><div>PC</div></div>
-                    <div class="option-tile" data-type="plataforma" data-value="consola" onclick="game.selectOption(this)"><div class="option-icon">🎮</div><div>CONSOLE</div></div>
-                    <div class="option-tile" data-type="plataforma" data-value="movil" onclick="game.selectOption(this)"><div class="option-icon">📱</div><div>MOBILE</div></div>
-                    <div class="option-tile" data-type="plataforma" data-value="vr" onclick="game.selectOption(this)"><div class="option-icon">🥽</div><div>VR</div></div>
-                </div>
-            </div>
-
-            <div class="modal-section">
-                <h4>BUDGET</h4>
-                <input type="range" id="budgetSlider" min="50000" max="500000" value="150000" oninput="game.updateBudget(this.value)" style="width:100%; height:10px; background:var(--bg-card); cursor:pointer;">
-                <div style="display:flex; justify-content:space-between; margin-top:8px; font-size:9px;">
-                    <span>MIN: $50K</span>
-                    <span id="budgetValue" style="color:var(--neon-blue); font-weight:800;">$150K</span>
-                    <span>MAX: $500K</span>
-                </div>
-            </div>
-
-            <button class="pixel-button success" onclick="game.confirmProject()" style="margin-top:15px;">START DEVELOPMENT</button>
         </div>
     </div>
 
-    <!-- REVIEW MODAL -->
-    <div class="modal" id="reviewModal">
-        <div class="modal-content review-modal">
-            <div class="modal-title">GAME REVIEWS</div>
-            <div class="review-score" id="reviewScore">85</div>
-            <div class="review-stars" id="reviewStars">★★★★☆</div>
-            <div class="review-comments" id="reviewComments">Solid execution.</div>
-            <div style="display:flex; gap:10px; margin-top:15px;">
-                <div class="stat-box">
-                    <div class="stat-title">SALES</div>
-                    <div class="stat-value" id="salesFigure">$450K</div>
-                </div>
-                <div class="stat-box">
-                    <div class="stat-title">UNITS</div>
-                    <div class="stat-value" id="unitsSold">50K</div>
-                </div>
-            </div>
-            <button class="pixel-button" onclick="game.closeReview()">CONTINUE</button>
+    <div class="right-panel panel">
+        <div class="title">EQUIPO</div>
+        <div id="employeeList" style="margin-top:8px;"></div>
+    </div>
+
+    <div class="bottom-panel panel">
+        <div style="display:flex; gap:8px; width:100%; align-items:center;">
+            <button class="btn" onclick="game.contratoRapido()">TRABAJO POR ENCARGO</button>
+            <div style="flex:1"></div>
+            <div class="small muted">Pulse 'CONTINUAR' para avanzar 1 mes. El juego avanza también automáticamente si AUTO está activado.</div>
         </div>
     </div>
+</div>
 
-    <div class="achievement-popup" id="achievementPopup">
-        <div class="achievement-title" id="achievementTitle">ACHIEVEMENT UNLOCKED!</div>
-        <div class="achievement-desc" id="achievementDesc">Description</div>
+<!-- Modal Contratación -->
+<div class="modal" id="hireModal">
+    <div class="modal-box">
+        <div class="title">CANDIDATOS DISPONIBLES <span id="hireInfo" class="small"></span></div>
+        <div id="hireGrid" style="margin-top:12px" class="selection-grid"></div>
+        <div style="margin-top:12px; display:flex; gap:8px; justify-content:flex-end;">
+            <button class="btn" onclick="document.getElementById('hireModal').classList.remove('active')">CERRAR</button>
+        </div>
     </div>
-
-    <div class="notification" id="notification"><div class="notification-title" id="notificationTitle">NOTIFICATION</div><div class="notification-text" id="notificationText">Message</div></div>
-    <div class="save-indicator" id="saveIndicator">💾 SAVING...</div>
-
-    <script>
-        // ======================================================
-        // Industry Evolution Simulator - Tycoon Edition (script)
-        // ======================================================
-
-        class IndustryEvolutionSimulator {
-            constructor() {
-                // Canvas & rendering
-                this.canvas = document.getElementById('gameCanvas');
-                this.ctx = this.canvas.getContext('2d');
-
-                // Game state
-                this.gameState = {
-                    año: 2000,
-                    mes: 1,
-                    caja: 500000,
-                    equipo: 3,
-                    maxEquipo: 50,
-                    reputacion: 65,
-                    hype: 30,
-                    moral: 75,
-                    juegos: [],
-                    proyectoActivo: null,
-                    ingresosTotales: 0,
-                    nivelEstudio: 1,
-                    nivelInvestigacion: 1,
-                    crunchMode: false,
-                    descuentoContratacion: false,
-                    empleados: []
-                };
-
-                // Config
-                this.config = {
-                    tamanoTile: 32,
-                    tickSpeed: 1500, // ms
-                    payrollIntervalMonths: 1 // pay every month tick
-                };
-
-                // Achievements (kept)
-                this.logros = {
-                    primero: { nombre: "First Game", descripcion: "Launch your first game", desbloqueado: false },
-                    hit: { nombre: "Hit Game", descripcion: "Score >85/100", desbloqueado: false },
-                    experto: { nombre: "Veteran", descripcion: "Launch 10 games", desbloqueado: false },
-                    millonario: { nombre: "Mogul", descripcion: "Earn $1M total", desbloqueado: false }
-                };
-
-                // Database (kept, minor adjustments allowed)
-                this.baseDatos = {
-                    generos: {
-                        accion: { nombre: "Action", base: 70, riesgo: 0.3, tendencia: [1,1,1,1,1,1.2,1.3,1.3,1.2,1.1] },
-                        rpg: { nombre: "RPG", base: 80, riesgo: 0.5, tendencia: [1,1,1,1,1,1,1.1,1.1,1.2,1.4] },
-                        estrategia: { nombre: "Strategy", base: 75, riesgo: 0.4, tendencia: [1,1,1,1,1,1,1,1,1,1] },
-                        puzzle: { nombre: "Puzzle", base: 65, riesgo: 0.2, tendencia: [0.8,0.8,0.9,1,1,1.1,1.2,1.3,1.4,1.5] },
-                        terror: { nombre: "Horror", base: 85, riesgo: 0.6, tendencia: [1,1,1,1,1,1,1,1.1,1.2,1.3] },
-                        simulacion: { nombre: "Simulation", base: 60, riesgo: 0.3, tendencia: [1,1,1,1,1,1,1.1,1.1,1.2,1.3] }
-                    },
-                    temas: {
-                        espacial: { nombre: "Space", multi: { accion:1.2, simulacion:1.3, rpg:1.1 } },
-                        medieval: { nombre: "Medieval", multi: { rpg:1.4, estrategia:1.3, accion:1.1 } },
-                        cyberpunk: { nombre: "Cyberpunk", multi: { rpg:1.3, accion:1.2, terror:1.1 } },
-                        fantasia: { nombre: "Fantasy", multi: { rpg:1.5, estrategia:1.1, accion:1 } },
-                        zombies: { nombre: "Zombies", multi: { terror:1.4, accion:1.2, estrategia:0.8 } },
-                        deportes: { nombre: "Sports", multi: { simulacion:1.3, accion:0.9, puzzle:0.7 } }
-                    },
-                    plataformas: {
-                        pc: { nombre:"PC", alcance:1, costo:1 },
-                        consola: { nombre:"Console", alcance:1.2, costo:1.3 },
-                        movil: { nombre:"Mobile", alcance:0.8, costo:0.6 },
-                        vr: { nombre:"VR", alcance:0.3, costo:1.8 }
-                    }
-                };
-
-                // Internals
-                this.teclado = { space:false };
-                this.sistemaParticulas = [];
-                this.payrollAccumulatorMonths = 0;
-
-                // Init
-                this.configurarCanvas();
-                this.configurarEventos();
-                this.generarEmpleadosIniciales();
-                this.iniciarLoop();
-                this.iniciarTicks();
-                this.mostrarNotificacion('WELCOME', 'Press SPACE to speed up development');
-            }
-
-            // -----------------------
-            // Initialization helpers
-            // -----------------------
-            configurarCanvas(){
-                this.canvas.width = window.innerWidth;
-                this.canvas.height = window.innerHeight;
-                window.addEventListener('resize', () => {
-                    this.canvas.width = window.innerWidth;
-                    this.canvas.height = window.innerHeight;
-                });
-            }
-
-            configurarEventos(){
-                document.addEventListener('keydown', (e) => {
-                    if (e.code === 'Space') { e.preventDefault(); this.teclado.space = true; }
-                });
-                document.addEventListener('keyup', (e) => {
-                    if (e.code === 'Space') { e.preventDefault(); this.teclado.space = false; }
-                });
-            }
-
-            iniciarLoop(){
-                let ultimoTiempo = 0;
-                const loop = (timestamp) => {
-                    const deltaTime = timestamp - ultimoTiempo;
-                    ultimoTiempo = timestamp;
-                    this.actualizar(deltaTime);
-                    this.renderizar();
-                    requestAnimationFrame(loop);
-                };
-                requestAnimationFrame(loop);
-            }
-
-            iniciarTicks(){
-                setInterval(() => this.tick(), this.config.tickSpeed);
-            }
-
-            // -----------------------
-            // Game ticks & time
-            // -----------------------
-            tick(){
-                // Advance time
-                this.gameState.mes++;
-                if (this.gameState.mes > 12) {
-                    this.gameState.mes = 1;
-                    this.gameState.año++;
-                    this.agregarEvento('info', `Year ${this.gameState.año}`);
-                }
-
-                // Payroll monthly (every month)
-                this.payrollAccumulatorMonths++;
-                if (this.payrollAccumulatorMonths >= this.config.payrollIntervalMonths) {
-                    this.pagarSalarios();
-                    this.payrollAccumulatorMonths = 0;
-                }
-
-                // Auto-develop if space held
-                if (this.teclado.space && this.gameState.proyectoActivo) {
-                    this.desarrollarProyecto();
-                }
-
-                // Historical events check (kept)
-                if (this.gameState.mes === 6 && this.gameState.año && this.eventosHistoria && this.eventosHistoria[this.gameState.año]) {
-                    const evento = this.eventosHistoria[this.gameState.año];
-                    this.agregarEvento(evento.tipo, evento.texto);
-                    evento.efecto();
-                }
-
-                this.actualizarUI();
-            }
-
-            // -----------------------
-            // Update / Render loop
-            // -----------------------
-            actualizar(deltaTime){
-                // employee internal updates
-                this.gameState.empleados.forEach(e => e.actualizar(deltaTime));
-                // particles...
-                this.sistemaParticulas = this.sistemaParticulas.filter(p => p.actualizar(deltaTime));
-            }
-
-            renderizar(){
-                this.ctx.clearRect(0,0,this.canvas.width,this.canvas.height);
-                this.dibujarOficina();
-                this.gameState.empleados.forEach(emp => emp.dibujar(this.ctx));
-                this.sistemaParticulas.forEach(p => p.dibujar(this.ctx));
-            }
-
-            dibujarOficina(){
-                const ctx = this.ctx;
-                const tile = this.config.tamanoTile;
-                const offsetX = this.canvas.width/2 - 300;
-                const offsetY = this.canvas.height/2 - 200;
-
-                // simple grid + workstations
-                ctx.strokeStyle = 'rgba(100,100,100,0.08)';
-                ctx.lineWidth = 1;
-                for (let x=0;x<20;x++){
-                    for (let y=0;y<10;y++){
-                        const gx = offsetX + x*tile*0.8;
-                        const gy = offsetY + y*tile*0.6;
-                        ctx.strokeRect(gx, gy, tile*0.8, tile*0.5);
-                    }
-                }
-            }
-
-            // -----------------------
-            // Employees & Hiring (Tycoon mechanics)
-            // -----------------------
-            generarEmpleadosIniciales(){
-                const pool = [
-                    { nombre:'Alex Dev' }, { nombre:'Sam Coder' }, { nombre:'Jordan Designer' },
-                    { nombre:'Taylor Artist' }, { nombre:'Morgan QA' }, { nombre:'Casey Producer' }
-                ];
-                // generate 3 diverse hires
-                for (let i=0;i<3;i++){
-                    const n = pool[Math.floor(Math.random()*pool.length)].nombre;
-                    const emp = new Empleado(n, 200+Math.random()*400, 150+Math.random()*200, this);
-                    // set initial level/salary
-                    emp.level = 1;
-                    emp.salary = 3000 + Math.floor(Math.random()*2000);
-                    this.gameState.empleados.push(emp);
-                }
-                this.gameState.equipo = this.gameState.empleados.length;
-            }
-
-            // New hiring flow: show 3 candidates and let player pick
-            hireEmployee(){
-                // If max team reached or insufficient hiring budget, quick-fail
-                if (this.gameState.equipo >= this.gameState.maxEquipo) {
-                    this.mostrarNotificacion('ERROR','Max team size');
-                    return;
-                }
-
-                // Generate 3 candidates
-                const candidates = [];
-                for (let i=0;i<3;i++){
-                    candidates.push(this.generarCandidatoAleatorio());
-                }
-                this.openHiringModal(candidates);
-            }
-
-            generarCandidatoAleatorio(){
-                const first = ['Alex','Sam','Jordan','Taylor','Morgan','Casey','Riley','Avery','Drew','Kai'];
-                const roles = ['Programmer','Artist','Designer','QA','Producer','Generalist'];
-                const role = roles[Math.floor(Math.random()*roles.length)];
-                // base skills vary by role
-                const base = {
-                    Programmer: {coding: randStat(60,90), design:randStat(20,60), art:randStat(10,50), qa:randStat(30,70)},
-                    Artist: {coding:randStat(10,50), design:randStat(30,70), art:randStat(60,95), qa:randStat(10,40)},
-                    Designer: {coding:randStat(20,60), design:randStat(60,95), art:randStat(30,70), qa:randStat(20,60)},
-                    QA: {coding:randStat(10,40), design:randStat(20,50), art:randStat(10,40), qa:randStat(70,95)},
-                    Producer: {coding:randStat(20,50), design:randStat(30,60), art:randStat(20,60), qa:randStat(30,70)},
-                    Generalist: {coding:randStat(40,75), design:randStat(40,75), art:randStat(40,75), qa:randStat(40,75)}
-                }[role];
-
-                const skillSum = (base.coding + base.design + base.art + base.qa);
-                const salary = Math.max(2500, Math.floor(skillSum * 8)); // salary scales with skill
-                const morale = randStat(50,90);
-                const name = first[Math.floor(Math.random()*first.length)] + ' ' + role.split('')[0];
-
-                return {
-                    nombre: name,
-                    role,
-                    skills: base,
-                    salary,
-                    morale,
-                    fitScore: Math.round(skillSum / 4)
-                };
-            }
-
-            openHiringModal(candidates){
-                // Build temporary modal DOM
-                const modal = document.createElement('div');
-                modal.className = 'modal active';
-                modal.style.zIndex = 2001;
-                const content = document.createElement('div');
-                content.className = 'modal-content';
-                content.style.maxWidth = '800px';
-                content.innerHTML = `<div class="modal-title">HIRING - Choose a candidate</div>`;
-                const grid = document.createElement('div');
-                grid.className = 'selection-grid';
-                candidates.forEach((c, idx) => {
-                    const tile = document.createElement('div');
-                    tile.className = 'option-tile';
-                    tile.style.textAlign = 'left';
-                    tile.innerHTML = `<div style="font-weight:700">${c.nombre} — ${c.role}</div>
-                        <div style="font-size:11px; margin-top:6px;">
-                            Coding: ${c.skills.coding} | Design: ${c.skills.design} | Art: ${c.skills.art} | QA: ${c.skills.qa}
-                        </div>
-                        <div style="margin-top:6px; font-size:12px;">Salary: $${c.salary}/mo — Fit: ${c.fitScore}</div>
-                        <div style="display:flex; gap:8px; margin-top:8px;">
-                            <button class="pixel-button success" id="hire-${idx}">HIRE</button>
-                            <button class="pixel-button" id="reject-${idx}">REJECT</button>
-                        </div>`;
-                    grid.appendChild(tile);
-
-                    // Hire handler
-                    tile.querySelector(`#hire-${idx}`).addEventListener('click', () => {
-                        // Cost to hire (one-time)
-                        const cost = Math.floor(c.salary * 6); // signing fee = 6x monthly salary
-                        if (this.gameState.caja < cost) {
-                            this.mostrarNotificacion('ERROR','Insufficient funds to sign');
-                            return;
-                        }
-                        // create employee instance
-                        const emp = new Empleado(c.nombre, 200+Math.random()*400, 150+Math.random()*200, this);
-                        emp.role = c.role;
-                        emp.coding = c.skills.coding;
-                        emp.design = c.skills.design;
-                        emp.art = c.skills.art;
-                        emp.qa = c.skills.qa;
-                        emp.salary = c.salary;
-                        emp.morale = c.morale;
-                        emp.level = 1;
-                        emp.exp = 0;
-                        // pay cost and add
-                        this.gameState.caja -= cost;
-                        this.gameState.empleados.push(emp);
-                        this.gameState.equipo = this.gameState.empleados.length;
-                        this.mostrarNotificacion('HIRED', `${emp.nombre} signed for $${cost}`);
-                        this.agregarEvento('success', `Hired: ${emp.nombre} (${emp.role})`);
-                        document.body.removeChild(modal);
-                        this.actualizarUI();
-                    });
-
-                    tile.querySelector(`#reject-${idx}`).addEventListener('click', () => {
-                        // remove tile / mark rejected
-                        tile.style.opacity = 0.5;
-                        const btns = tile.querySelectorAll('button');
-                        btns.forEach(b => b.disabled = true);
-                    });
-                });
-                content.appendChild(grid);
-                const cancel = document.createElement('button');
-                cancel.className = 'pixel-button danger';
-                cancel.textContent = 'CLOSE';
-                cancel.style.marginTop = '12px';
-                cancel.addEventListener('click', () => document.body.removeChild(modal));
-                content.appendChild(cancel);
-                modal.appendChild(content);
-                document.body.appendChild(modal);
-            }
-
-            // Payroll (salary payment each month)
-            pagarSalarios(){
-                const totalPayroll = this.gameState.empleados.reduce((s,e) => s + (e.salary || 0), 0);
-                if (this.gameState.caja >= totalPayroll) {
-                    this.gameState.caja -= totalPayroll;
-                    this.agregarEvento('info', `Paid payroll $${Math.floor(totalPayroll)}`);
-                    // small morale bump for being paid
-                    this.gameState.empleados.forEach(e => e.morale = Math.min(100, e.morale + 1));
-                } else {
-                    // can't pay: morale drop and reputation penalty
-                    this.agregarEvento('danger', `Payroll failed! Can't pay $${Math.floor(totalPayroll)}`);
-                    this.gameState.reputacion = Math.max(0, this.gameState.reputacion - 5);
-                    this.gameState.empleados.forEach(e => e.morale = Math.max(0, e.morale - 10));
-                    // partially pay proportional if any funds
-                    const available = this.gameState.caja;
-                    if (available > 0) {
-                        // distribute proportionally
-                        const ratio = available / totalPayroll;
-                        this.gameState.empleados.forEach(e => {
-                            const pay = Math.floor(e.salary * ratio);
-                            this.gameState.caja -= pay;
-                        });
-                    }
-                }
-            }
-
-            // -----------------------
-            // Marketing, Training, Office upgrade (adapted)
-            // -----------------------
-            investMarketing(){
-                const costo = 30000;
-                if (this.gameState.caja >= costo) {
-                    this.gameState.caja -= costo;
-                    this.gameState.hype = Math.min(100, this.gameState.hype + 25);
-                    this.mostrarNotificacion('MARKETING', 'Campaign increased hype +25');
-                    this.agregarEvento('info', 'Marketing campaign launched');
-                    // small morale bump
-                    this.gameState.empleados.forEach(e => e.morale = Math.min(100, e.morale + 2));
-                    this.actualizarUI();
-                } else this.mostrarNotificacion('ERROR','Insufficient funds');
-            }
-
-            // Renamed: training improves employee skills (used to be researchTech)
-            researchTech(){
-                // Training all team: increases skills modestly
-                const costo = 75000;
-                if (this.gameState.caja >= costo) {
-                    this.gameState.caja -= costo;
-                    this.gameState.nivelInvestigacion++;
-                    this.gameState.empleados.forEach(e => {
-                        // randomly increase one stat
-                        e.coding = Math.min(100, e.coding + randStat(1,5));
-                        e.design = Math.min(100, e.design + randStat(1,5));
-                        e.art = Math.min(100, e.art + randStat(1,5));
-                        e.qa = Math.min(100, e.qa + randStat(1,5));
-                        e.morale = Math.min(100, e.morale + 5);
-                    });
-                    this.mostrarNotificacion('TRAINING', 'Team improved skills');
-                    this.agregarEvento('success','Training completed');
-                    this.actualizarUI();
-                } else this.mostrarNotificacion('ERROR','Insufficient funds');
-            }
-
-            moveOffice(){
-                const costo = 150000;
-                if (this.gameState.caja >= costo && this.gameState.nivelEstudio < 5) {
-                    this.gameState.caja -= costo;
-                    this.gameState.nivelEstudio++;
-                    this.gameState.maxEquipo += 25;
-                    this.gameState.moral = Math.min(100, this.gameState.moral + 20);
-                    this.mostrarNotificacion('MOVED', `Office level ${this.gameState.nivelEstudio} unlocked`);
-                    this.agregarEvento('success', 'Office upgraded: +25 max team');
-                    this.actualizarUI();
-                } else this.mostrarNotificacion('ERROR', this.gameState.nivelEstudio >= 5 ? 'Max level reached' : 'Insufficient funds');
-            }
-
-            toggleCrunch(){
-                this.gameState.crunchMode = !this.gameState.crunchMode;
-                document.getElementById('crunchStatus').textContent = this.gameState.crunchMode ? 'ON' : 'OFF';
-                this.mostrarNotificacion('CRUNCH', this.gameState.crunchMode ? 'ON: +speed, -morale' : 'OFF');
-                this.agregarEvento(this.gameState.crunchMode ? 'warning' : 'info', `Crunch ${this.gameState.crunchMode ? 'ACTIVATED' : 'DISABLED'}`);
-                this.actualizarUI();
-            }
-
-            takeContract(){
-                // Contract job gives money but temporary morale hit / stress
-                const ingresos = 40000 + Math.floor(Math.random()*30000);
-                this.gameState.caja += ingresos;
-                this.gameState.ingresosTotales += ingresos;
-                this.gameState.moral = Math.max(0, this.gameState.moral - 5);
-                this.mostrarNotificacion('CONTRACT', `+${Math.floor(ingresos/1000)}K secured`);
-                this.agregarEvento('info', 'Contract work completed');
-                this.actualizarUI();
-            }
-
-            // -----------------------
-            // Projects: start / develop / finish
-            // -----------------------
-            startNewProject(){
-                if (this.gameState.proyectoActivo) {
-                    this.mostrarNotificacion('ACTIVE PROJECT','Finish current game first');
-                    return;
-                }
-                document.getElementById('newGameModal').classList.add('active');
-            }
-
-            continueProject(){
-                if (!this.gameState.proyectoActivo) return;
-                document.getElementById('continueBtn').classList.add('bouncing');
-                setTimeout(()=>document.getElementById('continueBtn').classList.remove('bouncing'),300);
-                this.desarrollarProyecto();
-            }
-
-            desarrollarProyecto(){
-                const proyecto = this.gameState.proyectoActivo;
-                if (!proyecto) return;
-
-                // Calculate team contribution: sum of assigned employees' productivity adjusted by fit
-                // If no assigned list, autoassign best-fit employees
-                if (!proyecto.assigned || proyecto.assigned.length === 0) {
-                    proyecto.assigned = this.autoAssignForProject(proyecto);
-                }
-
-                // Speed per tick
-                const baseSpeed = this.gameState.crunchMode ? 35 : 18;
-                let totalContribution = 0;
-                let qualityGain = 0;
-
-                proyecto.assigned.forEach(emp => {
-                    const employee = this.findEmpleadoById(emp.id);
-                    if (!employee) return;
-                    // Employee effective productivity = (avg relevant skills) * (morale/100) * (level bonus)
-                    const roleMatchFactor = this.roleMatchBonus(employee, proyecto);
-                    const avgSkill = (employee.coding + employee.design + employee.art + employee.qa) / 4;
-                    const effective = (avgSkill/100) * (employee.morale/100) * (1 + (employee.level - 1) * 0.08) * roleMatchFactor;
-                    // contribution scaled
-                    const contribution = effective * baseSpeed * (employee.productivity/100);
-                    totalContribution += contribution;
-                    // quality depends on "specialty" (higher matching stat)
-                    const qualityContribution = (employee.getQualityForProject(proyecto) / 100) * 2;
-                    qualityGain += qualityContribution;
-                    // gain experience
-                    employee.exp += Math.max(1, Math.floor(contribution * 0.02));
-                    // small morale change depending on crunch
-                    if (this.gameState.crunchMode) employee.morale = Math.max(0, employee.morale - 0.5);
-                });
-
-                // Random events
-                if (Math.random() < 0.12) this.eventoDesarrolloRandom();
-
-                // Apply progress & quality
-                const progressDelta = Math.floor(totalContribution / 10); // scale down
-                proyecto.progreso += progressDelta;
-                proyecto.calidad += qualityGain;
-                if (proyecto.progreso >= 100) this.lanzarJuego();
-                this.actualizarUI();
-            }
-
-            // Autoassign algorithm: chooses N best-fit employees
-            autoAssignForProject(proyecto){
-                const need = Math.min(this.gameState.equipo, 8); // limit assigned to 8
-                // compute fit score for each employee
-                const fits = this.gameState.empleados.map(e => {
-                    return { id:e.id, fit: this.employeeFitForProject(e, proyecto) };
-                });
-                fits.sort((a,b)=>b.fit - a.fit);
-                return fits.slice(0, need).map(f=>({id:f.id}));
-            }
-
-            // Fit score heuristic
-            employeeFitForProject(emp, proyecto){
-                // role match & relevant skill based on genre
-                const genre = proyecto.genero;
-                // prefer programmers + designers + artists depending on genre
-                let weightCoding=0.25, weightDesign=0.25, weightArt=0.25, weightQA=0.25;
-                if (genre === 'accion'){ weightCoding=0.4; weightDesign=0.2; weightArt=0.2; weightQA=0.2; }
-                if (genre === 'rpg'){ weightDesign=0.35; weightArt=0.25; weightCoding=0.25; weightQA=0.15; }
-                if (genre === 'terror'){ weightArt=0.35; weightDesign=0.3; weightCoding=0.2; weightQA=0.15; }
-                if (genre === 'simulacion'){ weightCoding=0.35; weightQA=0.25; weightDesign=0.2; weightArt=0.2; }
-                // compute weighted skill
-                const score = emp.coding*weightCoding + emp.design*weightDesign + emp.art*weightArt + emp.qa*weightQA;
-                // incorporate morale and level
-                return score * (emp.morale/100) * (1 + (emp.level-1)*0.05);
-            }
-
-            roleMatchBonus(emp, proyecto){
-                // small multiplier if employee role fits project's main needs
-                if (emp.role === 'Programmer' && proyecto.genero === 'accion') return 1.12;
-                if (emp.role === 'Designer' && proyecto.genero === 'rpg') return 1.12;
-                if (emp.role === 'Artist' && (proyecto.genero === 'terror' || proyecto.tema === 'fantasia')) return 1.12;
-                if (emp.role === 'QA') return 1.05;
-                return 1.0;
-            }
-
-            findEmpleadoById(id){
-                return this.gameState.empleados.find(e => e.id === id);
-            }
-
-            eventoDesarrolloRandom(){
-                const eventos = [
-                    { tipo:'warning', texto:'🐛 Critical bug! -10% progress', efecto: () => { if (this.gameState.proyectoActivo) this.gameState.proyectoActivo.progreso = Math.max(0, this.gameState.proyectoActivo.progreso - 10); } },
-                    { tipo:'success', texto:'⭐ Team star! +15% progress', efecto: () => { if (this.gameState.proyectoActivo) this.gameState.proyectoActivo.progreso += 15; } },
-                    { tipo:'info', texto:'💡 Inspiration! +5 quality', efecto: () => { if (this.gameState.proyectoActivo) this.gameState.proyectoActivo.calidad += 5; } }
-                ];
-                const evento = eventos[Math.floor(Math.random()*eventos.length)];
-                evento.efecto();
-                this.agregarEvento(evento.tipo, evento.texto);
-            }
-
-            lanzarJuego(){
-                const proyecto = this.gameState.proyectoActivo;
-                if (!proyecto) return;
-                const nota = this.calcularNotaFinal(proyecto);
-                const ventas = this.calcularVentas(proyecto, nota);
-
-                // update state
-                this.gameState.caja += ventas;
-                this.gameState.ingresosTotales += ventas;
-                this.gameState.juegos.push({...proyecto, nota, ventas, año:this.gameState.año, mes:this.gameState.mes});
-
-                // reputation, hype, moral effects
-                const cambioRep = nota > 80 ? 8 : nota > 60 ? 3 : -5;
-                this.gameState.reputacion = clamp(0,100,this.gameState.reputacion + cambioRep);
-                this.gameState.hype = Math.max(10, this.gameState.hype - 30);
-                this.gameState.moral = Math.min(100, this.gameState.moral + 10);
-
-                // clear project and UI
-                this.gameState.proyectoActivo = null;
-                document.getElementById('activeProject').classList.remove('active');
-                document.getElementById('newGameBtn').style.display = 'block';
-                document.getElementById('continueBtn').style.display = 'none';
-
-                this.mostrarReview(nota, ventas);
-                this.agregarEvento(nota > 80 ? 'success' : nota > 60 ? 'info' : 'danger', `${this.baseDatos.generos[proyecto.genero].nombre} launched: ${nota.toFixed(1)}/100`);
-                this.comprobarLogros();
-                this.actualizarUI();
-            }
-
-            calcularNotaFinal(proyecto){
-                const genero = this.baseDatos.generos[proyecto.genero];
-                const tema = this.baseDatos.temas[proyecto.tema];
-                const plataforma = this.baseDatos.plataformas[proyecto.plataforma];
-                const añoIndex = Math.min(9, Math.floor((this.gameState.año - 2000)/3));
-                const tendencia = genero.tendencia[añoIndex];
-
-                // start from base and apply multipliers: budget, reputation, team quality, project quality stat
-                let nota = genero.base * tendencia;
-                nota *= (tema.multi[proyecto.genero] || 1);
-                nota *= (proyecto.presupuesto / 100000) * 0.5 + 0.5;
-                nota *= (this.gameState.reputacion/100);
-                nota *= (this.gameState.moral/100)*0.3 + 0.7;
-                // team factor: average relevant skill of assigned employees
-                if (proyecto.assigned && proyecto.assigned.length > 0) {
-                    const avg = proyecto.assigned.reduce((s, a) => {
-                        const emp = this.findEmpleadoById(a.id);
-                        return emp ? s + ((emp.coding + emp.design + emp.art + emp.qa)/4) : s;
-                    }, 0) / proyecto.assigned.length;
-                    nota *= (avg/100)*0.5 + 0.75;
-                }
-                // scale with project internal "calidad"
-                nota *= 0.9 + (Math.min(100, proyecto.calidad || 0) / 100) * 0.2;
-                // random jitter
-                nota *= 0.95 + Math.random() * 0.1;
-                return Math.min(100, Math.max(0, nota));
-            }
-
-            calcularVentas(proyecto, nota){
-                const base = proyecto.presupuesto * 3;
-                const bonusNota = (nota - 50) / 50;
-                const bonusHype = this.gameState.hype / 100;
-                const añoMulti = this.gameState.año < 2010 ? 0.8 : this.gameState.año < 2020 ? 1.0 : 1.2;
-                return Math.floor(base * (1 + bonusNota) * (1 + bonusHype) * añoMulti);
-            }
-
-            mostrarReview(nota, ventas){
-                document.getElementById('reviewScore').textContent = Math.round(nota);
-                const stars = '★'.repeat(Math.floor(nota/20)) + '☆'.repeat(5 - Math.floor(nota/20));
-                document.getElementById('reviewStars').textContent = stars;
-                document.getElementById('salesFigure').textContent = `$${(ventas/1000).toFixed(0)}K`;
-                document.getElementById('unitsSold').textContent = `${(ventas/10).toFixed(0)}K`;
-                const comentarios = nota >= 90 ? "Masterpiece! Game of the Year." : nota >= 80 ? "Excellent! Must buy." : nota >= 70 ? "Good game with minor flaws." : nota >= 60 ? "Average experience." : "Poor execution. Needs work.";
-                document.getElementById('reviewComments').textContent = comentarios;
-                document.getElementById('reviewModal').classList.add('active');
-            }
-
-            closeReview(){
-                document.getElementById('reviewModal').classList.remove('active');
-            }
-
-            // -----------------------
-            // Project creation (kept but improved)
-            // -----------------------
-            selectOption(element){
-                const type = element.dataset.type;
-                document.querySelectorAll(`[data-type="${type}"]`).forEach(el => el.classList.remove('selected'));
-                element.classList.add('selected');
-            }
-
-            confirmProject(){
-                const genero = document.querySelector('[data-type="genre"].selected')?.dataset.value;
-                const tema = document.querySelector('[data-type="tema"].selected')?.dataset.value;
-                const plataforma = document.querySelector('[data-type="plataforma"].selected')?.dataset.value;
-                const presupuesto = parseInt(document.getElementById('budgetSlider').value);
-
-                if (!genero || !tema || !plataforma) {
-                    this.mostrarNotificacion('ERROR','Select all options');
-                    return;
-                }
-                if (this.gameState.caja < presupuesto) {
-                    this.mostrarNotificacion('ERROR', `Need $${presupuesto.toLocaleString()}`);
-                    return;
-                }
-
-                // deduct budget
-                this.gameState.caja -= presupuesto;
-                // create project structure with assigned = [] (autoassign later)
-                this.gameState.proyectoActivo = { genero, tema, plataforma, presupuesto, progreso:0, calidad:0, assigned:[] };
-
-                document.getElementById('newGameModal').classList.remove('active');
-                document.querySelectorAll('.option-tile').forEach(el => el.classList.remove('selected'));
-                this.mostrarNotificacion('PROJECT STARTED', `${this.baseDatos.generos[genero].nombre}`);
-                this.agregarEvento('success', `Started: ${this.baseDatos.generos[genero].nombre} / ${this.baseDatos.temas[tema].nombre}`);
-                this.actualizarUI();
-            }
-
-            updateBudget(valor){
-                document.getElementById('budgetValue').textContent = `$${(valor/1000).toFixed(0)}K`;
-            }
-
-            // -----------------------
-            // UI updates & employee list
-            // -----------------------
-            actualizarUI(){
-                document.getElementById('uiCash').textContent = `$${(this.gameState.caja/1000).toFixed(0)}K`;
-                document.getElementById('uiYear').textContent = `${this.gameState.año}-${this.gameState.mes.toString().padStart(2,'0')}`;
-                document.getElementById('uiTeam').textContent = `${this.gameState.equipo} / ${this.gameState.maxEquipo}`;
-                document.getElementById('uiRep').textContent = `${Math.round(this.gameState.reputacion)}%`;
-                document.getElementById('uiHype').textContent = `${Math.round(this.gameState.hype)}%`;
-
-                document.getElementById('cashBar').style.width = `${Math.min(100, this.gameState.caja/5000)}%`;
-                document.getElementById('teamBar').style.width = `${(this.gameState.equipo/this.gameState.maxEquipo)*100}%`;
-                document.getElementById('repBar').style.width = `${this.gameState.reputacion}%`;
-                document.getElementById('hypeBar').style.width = `${this.gameState.hype}%`;
-
-                // Project panel
-                if (this.gameState.proyectoActivo) {
-                    document.getElementById('activeProject').classList.add('active');
-                    document.getElementById('newGameBtn').style.display = 'none';
-                    document.getElementById('continueBtn').style.display = 'block';
-                    document.getElementById('projectName').textContent = `${this.baseDatos.generos[this.gameState.proyectoActivo.genero].nombre}`;
-                    document.getElementById('projectProgress').textContent = `${Math.min(100, Math.floor(this.gameState.proyectoActivo.progreso))}%`;
-                    document.getElementById('progressBar').style.width = `${Math.min(100, this.gameState.proyectoActivo.progreso)}%`;
-                } else {
-                    document.getElementById('activeProject').classList.remove('active');
-                    document.getElementById('newGameBtn').style.display = 'block';
-                    document.getElementById('continueBtn').style.display = 'none';
-                }
-
-                this.actualizarListaEmpleados();
-                this.comprobarLogros();
-            }
-
-            actualizarListaEmpleados(){
-                const container = document.getElementById('employeeList');
-                container.innerHTML = '';
-                // show up to 12 employees, but allow scroll
-                this.gameState.empleados.forEach(emp => {
-                    const div = document.createElement('div');
-                    div.className = 'ui-stat';
-                    div.style.fontSize = '9px';
-                    div.style.display = 'flex';
-                    div.style.justifyContent = 'space-between';
-                    div.style.alignItems = 'center';
-                    div.style.gap = '8px';
-
-                    const left = document.createElement('div');
-                    left.innerHTML = `<div style="font-weight:700">${emp.nombre.split(' ')[0]} (${emp.role||'General'})</div>
-                                      <div style="font-size:10px; color:var(--text-secondary)">Lvl ${emp.level} • $${emp.salary}/mo</div>`;
-
-                    const right = document.createElement('div');
-                    right.style.textAlign = 'right';
-                    right.innerHTML = `<div style="color:${emp.morale>60? '#00ff41':'#ffcc00'}">${Math.round(emp.morale)}%</div>
-                                       <div style="font-size:10px; margin-top:4px;">
-                                         <button class="pixel-button" id="view-${emp.id}" style="min-width:80px;">VIEW</button>
-                                       </div>`;
-
-                    div.appendChild(left);
-                    div.appendChild(right);
-                    container.appendChild(div);
-
-                    document.getElementById(`view-${emp.id}`).addEventListener('click', () => this.openEmployeePanel(emp));
-                });
-            }
-
-            openEmployeePanel(emp){
-                // small modal with actions: train, promote, fire, assign/unassign
-                const modal = document.createElement('div');
-                modal.className = 'modal active';
-                modal.style.zIndex = 2002;
-                const content = document.createElement('div');
-                content.className = 'modal-content';
-                content.style.maxWidth = '500px';
-                content.innerHTML = `<div class="modal-title">${emp.nombre} — ${emp.role || 'Generalist'}</div>
-                    <div style="display:flex; gap:10px; margin-bottom:10px;">
-                        <div style="flex:1; background:var(--bg-card); padding:8px; border:2px solid var(--pixel-border);">
-                            <div style="font-size:11px; color:var(--text-secondary)">Coding</div><div style="font-weight:700">${Math.round(emp.coding)}</div>
-                            <div style="font-size:11px; color:var(--text-secondary); margin-top:6px;">Design</div><div style="font-weight:700">${Math.round(emp.design)}</div>
-                        </div>
-                        <div style="flex:1; background:var(--bg-card); padding:8px; border:2px solid var(--pixel-border);">
-                            <div style="font-size:11px; color:var(--text-secondary)">Art</div><div style="font-weight:700">${Math.round(emp.art)}</div>
-                            <div style="font-size:11px; color:var(--text-secondary); margin-top:6px;">QA</div><div style="font-weight:700">${Math.round(emp.qa)}</div>
-                        </div>
-                    </div>
-                    <div style="display:flex; gap:8px;">
-                        <button class="pixel-button success" id="train-${emp.id}">TRAIN (+skill)</button>
-                        <button class="pixel-button" id="promote-${emp.id}">PROMOTE (exp)</button>
-                        <button class="pixel-button danger" id="fire-${emp.id}">FIRE</button>
-                    </div>
-                    <div style="margin-top:10px;"><button class="pixel-button" id="close-${emp.id}">CLOSE</button></div>`;
-
-                content.querySelector(`#train-${emp.id}`).addEventListener('click', () => {
-                    const cost = 8000;
-                    if (this.gameState.caja < cost) { this.mostrarNotificacion('ERROR','Insufficient funds'); return; }
-                    this.gameState.caja -= cost;
-                    emp.coding = Math.min(100, emp.coding + randStat(3,8));
-                    emp.design = Math.min(100, emp.design + randStat(3,8));
-                    emp.art = Math.min(100, emp.art + randStat(3,8));
-                    emp.qa = Math.min(100, emp.qa + randStat(3,8));
-                    emp.morale = Math.min(100, emp.morale + 5);
-                    this.agregarEvento('success', `${emp.nombre} trained`);
-                    this.actualizarUI();
-                });
-
-                content.querySelector(`#promote-${emp.id}`).addEventListener('click', () => {
-                    if (emp.exp >= 100) {
-                        emp.level++;
-                        emp.exp -= 100;
-                        emp.salary = Math.floor(emp.salary * 1.25);
-                        emp.productivity = Math.min(200, emp.productivity + 10);
-                        this.agregarEvento('success', `${emp.nombre} promoted to Lvl ${emp.level}`);
-                        this.actualizarUI();
-                    } else this.mostrarNotificacion('INFO', 'Not enough EXP to promote (100)');
-                });
-
-                content.querySelector(`#fire-${emp.id}`).addEventListener('click', () => {
-                    if (confirm(`Fire ${emp.nombre}? This will remove them permanently.`)) {
-                        this.gameState.empleados = this.gameState.empleados.filter(e => e.id !== emp.id);
-                        this.gameState.equipo = this.gameState.empleados.length;
-                        this.agregarEvento('danger', `Fired: ${emp.nombre}`);
-                        document.body.removeChild(modal);
-                        this.actualizarUI();
-                    }
-                });
-
-                content.querySelector(`#close-${emp.id}`).addEventListener('click', () => document.body.removeChild(modal));
-                modal.appendChild(content);
-                document.body.appendChild(modal);
-            }
-
-            comprobarLogros(){
-                if (this.gameState.juegos.length === 1 && !this.logros.primero.desbloqueado) this.desbloquearLogro(this.logros.primero);
-                if (this.gameState.juegos.length >= 10 && !this.logros.experto.desbloqueado) this.desbloquearLogro(this.logros.experto);
-                if (this.gameState.ingresosTotales >= 1000000 && !this.logros.millonario.desbloqueado) this.desbloquearLogro(this.logros.millonario);
-                const hit = this.gameState.juegos.find(j => j.nota >= 85);
-                if (hit && !this.logros.hit.desbloqueado) this.desbloquearLogro(this.logros.hit);
-            }
-
-            desbloquearLogro(logro){
-                logro.desbloqueado = true;
-                document.getElementById('achievementTitle').textContent = `🏆 ${logro.nombre}`;
-                document.getElementById('achievementDesc').textContent = logro.descripcion;
-                document.getElementById('achievementPopup').classList.add('active');
-                setTimeout(()=>document.getElementById('achievementPopup').classList.remove('active'),4000);
-                this.agregarEvento('success', `Achievement: ${logro.nombre}`);
-            }
-
-            agregarEvento(tipo, texto){
-                const log = document.getElementById('eventLog');
-                const evento = document.createElement('div');
-                evento.className = `event-item ${tipo}`;
-                evento.innerHTML = `<div class="event-header">${this.gameState.año}-${this.gameState.mes.toString().padStart(2,'0')}</div>${texto}`;
-                log.insertBefore(evento, log.firstChild);
-                while (log.children.length > 20) log.removeChild(log.lastChild);
-            }
-
-            mostrarNotificacion(titulo, texto){
-                document.getElementById('notificationTitle').textContent = titulo;
-                document.getElementById('notificationText').textContent = texto;
-                const notif = document.getElementById('notification');
-                notif.classList.add('show');
-                setTimeout(()=>notif.classList.remove('show'),3000);
-            }
-
-            resetGame(){
-                if (confirm('Start new game? All progress will be lost!')) {
-                    localStorage.removeItem('industrySimGOTY');
-                    location.reload();
-                }
-            }
-
-            guardarJuego(){
-                try {
-                    // serializable state: convert empleados to plain objects
-                    const data = JSON.parse(JSON.stringify(this.gameState, (k,v) => {
-                        if (k === 'empleados') return v.map(e => ({ id:e.id, nombre:e.nombre, x:e.x, y:e.y, role:e.role, coding:e.coding, design:e.design, art:e.art, qa:e.qa, salary:e.salary, morale:e.morale, level:e.level, exp:e.exp, productivity:e.productivity }));
-                        return v;
-                    }));
-                    localStorage.setItem('industrySimGOTY', JSON.stringify(data));
-                    document.getElementById('saveIndicator').classList.add('show');
-                    setTimeout(()=>document.getElementById('saveIndicator').classList.remove('show'),1000);
-                } catch (e) { console.warn('Could not save game:', e); }
-            }
-
-            cargarJuego(){
-                try {
-                    const guardado = localStorage.getItem('industrySimGOTY');
-                    if (guardado) {
-                        const data = JSON.parse(guardado);
-                        // copy top-level props
-                        Object.assign(this.gameState, data);
-                        // recreate empleados as class instances
-                        if (data.empleados && Array.isArray(data.empleados)) {
-                            this.gameState.empleados = data.empleados.map(e => {
-                                const emp = new Empleado(e.nombre, e.x || 200+Math.random()*400, e.y || 150+Math.random()*200, this);
-                                Object.assign(emp, e);
-                                // ensure defaults
-                                emp.level = emp.level || 1;
-                                emp.exp = emp.exp || 0;
-                                emp.productivity = emp.productivity || 100;
-                                return emp;
-                            });
-                        }
-                        this.mostrarNotificacion('SAVED GAME LOADED', `Year ${this.gameState.año}`);
-                    }
-                } catch (e) { console.warn('Could not load game:', e); }
-            }
-        }
-
-        // -----------------------
-        // Employee Class (rich stats)
-        // -----------------------
-        let __EMP_ID = 1;
-        class Empleado {
-            constructor(nombre, x, y, juego) {
-                this.id = __EMP_ID++;
-                this.nombre = nombre;
-                this.x = x;
-                this.y = y;
-                this.juego = juego;
-                // Stats
-                this.morale = 75;
-                this.coding = randStat(40,80);
-                this.design = randStat(30,75);
-                this.art = randStat(20,70);
-                this.qa = randStat(30,80);
-                this.productivity = randStat(80,120); // percent baseline
-                this.level = 1;
-                this.exp = 0;
-                this.salary = 3000 + Math.floor(Math.random()*2000);
-                this.role = this.guessRole();
-                this.estado = 'idle';
-                this.frame = 0;
-                this.destinoX = x;
-                this.destinoY = y;
-                this.color = `hsl(${Math.random()*360},70%,50%)`;
-            }
-
-            guessRole(){
-                // pick primary highest skill
-                const vals = [{k:'Programmer',v:this.coding},{k:'Designer',v:this.design},{k:'Artist',v:this.art},{k:'QA',v:this.qa}];
-                vals.sort((a,b)=>b.v - a.v);
-                return vals[0].k;
-            }
-
-            actualizar(deltaTime){
-                this.frame += deltaTime*0.01;
-                // random small walk
-                if (this.estado === 'walk') {
-                    const dx = this.destinoX - this.x;
-                    const dy = this.destinoY - this.y;
-                    const dist = Math.sqrt(dx*dx + dy*dy);
-                    if (dist > 5) {
-                        const velocidad = 1 + this.productivity/100;
-                        this.x += (dx/dist) * velocidad;
-                        this.y += (dy/dist) * velocidad;
-                    } else this.estado = 'idle';
-                } else if (Math.random() < 0.0005) this.caminarAleatorio();
-
-                // auto level up if exp high
-                if (this.exp >= 100) {
-                    this.level++;
-                    this.exp -= 100;
-                    this.salary = Math.floor(this.salary * 1.18);
-                    this.productivity = Math.min(200, this.productivity + 8);
-                    this.juego.agregarEvento('success', `${this.nombre} leveled to ${this.level}`);
-                }
-            }
-
-            dibujar(ctx){
-                const size = 16;
-                const x = this.x - size/2;
-                const y = this.y - size/2;
-                ctx.fillStyle = this.color;
-                ctx.fillRect(x, y, size, size);
-                ctx.fillStyle = '#fdbcb4';
-                ctx.fillRect(x+4, y-8, 8, 8);
-                if (this.estado === 'work') {
-                    ctx.fillStyle = 'rgba(0,184,255,0.18)';
-                    ctx.fillRect(x-2, y-2, size+4, size+4);
-                }
-            }
-
-            caminarAleatorio(){
-                this.destinoX = 200 + Math.random()*400;
-                this.destinoY = 150 + Math.random()*200;
-                this.estado = 'walk';
-            }
-
-            // get the stat that best fits project to compute quality
-            getQualityForProject(proyecto){
-                // heuristics: depending on genre, return relevant stat
-                if (!proyecto) return (this.coding+this.design+this.art+this.qa)/4;
-                if (proyecto.genero === 'accion') return (this.coding*0.6 + this.design*0.2 + this.art*0.1 + this.qa*0.1);
-                if (proyecto.genero === 'rpg') return (this.design*0.45 + this.art*0.35 + this.coding*0.15 + this.qa*0.05);
-                if (proyecto.genero === 'terror') return (this.art*0.45 + this.design*0.35 + this.qa*0.1 + this.coding*0.1);
-                if (proyecto.genero === 'simulacion') return (this.coding*0.5 + this.qa*0.3 + this.design*0.1 + this.art*0.1);
-                // fallback
-                return (this.coding+this.design+this.art+this.qa)/4;
-            }
-        }
-
-        // -----------------------
-        // Utility functions
-        // -----------------------
-        function randStat(min,max){ return Math.floor(min + Math.random()*(max-min+1)); }
-        function clamp(a,b,v){ return Math.max(a, Math.min(b, v)); }
-
-        // -----------------------
-        // Historical events (kept from original)
-        // -----------------------
-        IndustryEvolutionSimulator.prototype.eventosHistoria = {
-            2004: { tipo:'danger', texto:'EA Spouse scandal! Morale -20%', efecto: () => { game.gameState.moral = Math.max(0, game.gameState.moral - 20); } },
-            2008: { tipo:'warning', texto:'Financial crisis! Hype -30%', efecto: () => { game.gameState.hype = Math.max(0, game.gameState.hype - 30); } },
-            2012: { tipo:'success', texto:'Mobile boom! Hype +30', efecto: () => { game.gameState.hype = Math.min(100, game.gameState.hype + 30); } },
-            2017: { tipo:'danger', texto:'Loot box controversy! Reputation -15%', efecto: () => { game.gameState.reputacion = Math.max(0, game.gameState.reputacion - 15); } },
-            2020: { tipo:'success', texto:'Pandemic: cash bonus', efecto: () => { const bonus = 200000; game.gameState.caja += bonus; game.gameState.ingresosTotales += bonus; } },
-            2023: { tipo:'warning', texto:'Mass layoffs! Hiring discount', efecto: () => { game.gameState.descuentoContratacion = true; } }
+</div>
+
+<!-- Review modal -->
+<div class="modal" id="reviewModal">
+    <div class="modal-box">
+        <div class="title">RESEÑA DEL JUEGO <span id="reviewName" class="small"></span></div>
+        <div style="margin-top:12px;" id="reviewContent"></div>
+        <div style="margin-top:12px; display:flex; gap:8px; justify-content:flex-end;">
+            <button class="btn" onclick="document.getElementById('reviewModal').classList.remove('active')">CONTINUAR</button>
+        </div>
+    </div>
+</div>
+
+<div id="eventLog" style="z-index:2100;"></div>
+<div id="notif" class="notif"></div>
+<div id="ach" class="ach"></div>
+
+<script>
+/* ======= Lógica del juego (versión adaptada en español) ======= */
+
+class JuegoTycoon {
+    constructor(){
+        // DOM
+        this.canvas = document.getElementById('gameCanvas');
+        this.ctx = this.canvas.getContext('2d');
+
+        // Estado base
+        this.estado = {
+            año:2000, mes:1,
+            caja: 500000,
+            equipo:0,
+            maxEquipo:50,
+            reputacion:65,
+            hype:30,
+            moral:75,
+            proyectoActivo: null,
+            juegos: [],
+            empleados: [],
+            ingresosTotales:0,
+            nivelOficina:1,
+            autoplay:false,
+            crunch:false
         };
 
-        // -----------------------
-        // Boot
-        // -----------------------
-        window.addEventListener('load', () => {
-            window.game = new IndustryEvolutionSimulator();
-            window.game.cargarJuego();
-            setInterval(() => game.guardarJuego(), 60000);
+        // Configurables
+        this.config = {
+            tickMs: 2200,        // cada tick = 1 mes (ajustable)
+            maxAssigned: 8,
+            basePayrollIntervalMonths: 1
+        };
+
+        // Internos
+        this.tickHandle = null;
+        this.initCanvas();
+        this.iniciarMiembrosIniciales();
+        this.bindUI();
+        this.empezarTicks();
+        this.actualizarUI();
+    }
+
+    initCanvas(){
+        this.resize();
+        window.addEventListener('resize', ()=>this.resize());
+        this.ctx.clearRect(0,0,this.canvas.width,this.canvas.height);
+    }
+    resize(){
+        this.canvas.width = window.innerWidth;
+        this.canvas.height = window.innerHeight;
+    }
+
+    bindUI(){
+        window.game = this; // compatibilidad global
+        // close modal click outside
+        document.getElementById('hireModal').addEventListener('click', (e)=>{
+            if (e.target === document.getElementById('hireModal')) document.getElementById('hireModal').classList.remove('active');
+        });
+        document.getElementById('reviewModal').addEventListener('click', (e)=>{
+            if (e.target === document.getElementById('reviewModal')) document.getElementById('reviewModal').classList.remove('active');
+        });
+    }
+
+    iniciarMiembrosIniciales(){
+        // crea 3 empleados iniciales coherentes
+        const n1 = new Empleado("Alex Dev", this);
+        const n2 = new Empleado("Sam Artist", this);
+        const n3 = new Empleado("Jordan Designer", this);
+        this.estado.empleados.push(n1,n2,n3);
+        this.estado.equipo = this.estado.empleados.length;
+    }
+
+    empezarTicks(){
+        if (this.tickHandle) clearInterval(this.tickHandle);
+        this.tickHandle = setInterval(()=>this.tick(), this.config.tickMs);
+    }
+
+    toggleAutoplay(){
+        this.estado.autoplay = !this.estado.autoplay;
+        document.getElementById('autoplayBtn').textContent = this.estado.autoplay ? 'AUTO: ON' : 'AUTO: OFF';
+    }
+
+    // Avanza exactamente 1 mes: payroll + desarrollo + UI
+    tick(){
+        // Avanza el mes
+        this.estado.mes++;
+        if (this.estado.mes > 12){ this.estado.mes = 1; this.estado.año++; }
+        // Pago de nóminas cada mes
+        this.pagarNominas();
+        // Desarrollo automático si hay proyecto
+        if (this.estado.proyectoActivo) {
+            this.desarrollarMes();
+        }
+        // Si autoplay activado, el tick ya avanza; si no, tick sigue corriendo pero no desarrolla si autoplay=false.
+        // Actualiza UI
+        this.actualizarUI();
+    }
+
+    // CONTINUAR (1 mes) -> forzar 1 mes (usa la misma lógica que tick pero sin esperar)
+    continuarMes(){
+        // Forzamos exactamente una iteración de mes (útil si autoplay off)
+        this.tick();
+    }
+
+    pagarNominas(){
+        // salarios mensuales sumados
+        const total = this.estado.empleados.reduce((s,e)=> s + (e.salarioMensual||0), 0);
+        if (total <= 0) return;
+        if (this.estado.caja >= total){
+            this.estado.caja -= total;
+            this.log(`Se han pagado las nóminas: $${total.toLocaleString()}`);
+            // leve subida moral
+            this.estado.empleados.forEach(e => e.moral = Math.min(100, e.moral + 0.8));
+        } else {
+            // Si no hay dinero suficiente -> efecto negativo
+            this.log(`Error: fondos insuficientes para nóminas ($${total.toLocaleString()})`, 'danger');
+            this.estado.reputacion = Math.max(0, this.estado.reputacion - 3);
+            this.estado.empleados.forEach(e => e.moral = Math.max(0, e.moral - 8));
+            // intentar pago parcial proporcional
+            const available = this.estado.caja;
+            if (available > 0){
+                const ratio = available / total;
+                this.estado.empleados.forEach(e => {
+                    const pago = Math.floor(e.salarioMensual * ratio);
+                    // no restamos cada pago por separado (ya restamos todo junto)
+                });
+                this.estado.caja = 0;
+            }
+        }
+    }
+
+    // Contratación: abre modal con 3 candidatos
+    abrirContratacion(){
+        const grid = document.getElementById('hireGrid');
+        grid.innerHTML = '';
+        const candidatos = [];
+        for (let i=0;i<3;i++) candidatos.push(this.generarCandidato());
+        candidatos.forEach((c, idx) => {
+            const div = document.createElement('div');
+            div.className = 'selection-tile';
+            div.style.background = 'linear-gradient(180deg,#0f1318,#0b0f14)';
+            div.style.padding = '10px';
+            div.style.border = '1px solid rgba(255,255,255,0.03)';
+            div.style.borderRadius = '8px';
+            div.innerHTML = `<div style="font-weight:700">${c.nombre} — <span style="color:var(--muted); font-weight:600">${c.rol}</span></div>
+                <div style="font-size:12px; color:var(--muted); margin-top:6px;">Sueld mensual: $${c.salario}</div>
+                <div style="margin-top:6px; font-size:12px;">
+                    <div style="font-size:11px; color:var(--muted)">Coding</div>
+                    <div class="bar-mini" style="margin-top:4px"><div class="fill" style="width:${c.skills.coding}% ; background:linear-gradient(90deg,#00b8ff,#0088cc)"></div></div>
+                    <div style="height:6px"></div>
+                    <div style="display:flex; gap:6px; margin-top:6px;">
+                        <button class="btn" id="hireBtn${idx}">Contratar</button>
+                        <button class="btn" id="rejectBtn${idx}">Rechazar</button>
+                    </div>
+                </div>`;
+            grid.appendChild(div);
+            document.getElementById(`hireBtn${idx}`).addEventListener('click', ()=> {
+                this.firmarCandidato(c);
+                document.getElementById('hireModal').classList.remove('active');
+            });
+            document.getElementById(`rejectBtn${idx}`).addEventListener('click', ()=> {
+                div.style.opacity = 0.45;
+                div.querySelectorAll('button').forEach(b=> b.disabled=true);
+            });
+        });
+        document.getElementById('hireModal').classList.add('active');
+    }
+
+    generarCandidato(){
+        const nombres = ['Alex','Sam','Jordan','Taylor','Morgan','Casey','Riley','Avery','Drew','Kai','Fran','Luis','Marta'];
+        const roles = ['Programador','Artista','Diseñador','QA','Productor','Generalista'];
+        const rol = roles[Math.floor(Math.random()*roles.length)];
+        const skills = {
+            coding: this.rand(30,90),
+            design: this.rand(20,90),
+            art: this.rand(10,95),
+            qa: this.rand(20,95)
+        };
+        // sueldo mensual en rango razonable
+        const sum = skills.coding + skills.design + skills.art + skills.qa;
+        const salario = Math.max(1200, Math.floor(sum * 7)); // escala sensata
+        return {
+            nombre: nombres[Math.floor(Math.random()*nombres.length)] + ' ' + rol.slice(0,3),
+            rol,
+            skills,
+            salario
+        };
+    }
+
+    firmarCandidato(info){
+        // coste de firma (1 mes de salario como retainer)
+        const costeFirma = Math.floor(info.salario);
+        if (this.estado.caja < costeFirma){
+            this.notificar('FONDOS INSUFICIENTES', 'No tienes dinero para fichar a este candidato.');
+            return;
+        }
+        this.estado.caja -= costeFirma;
+        const emp = new Empleado(info.nombre, this);
+        emp.role = info.rol;
+        emp.coding = info.skills.coding;
+        emp.design = info.skills.design;
+        emp.art = info.skills.art;
+        emp.qa = info.skills.qa;
+        emp.salarioMensual = info.salario;
+        this.estado.empleados.push(emp);
+        this.estado.equipo = this.estado.empleados.length;
+        this.log(`Contratado: ${emp.nombre} — ${emp.role}`);
+        this.notificar('CONTRATADO', `${emp.nombre} ha sido contratado. Firma: $${costeFirma}`);
+        this.actualizarUI();
+    }
+
+    // Trabajo por encargo (contrato rápido) -> cantidades sensatas + cooldown simple
+    contratoRapido(){
+        // El pago depende del tamaño del equipo y reputación, no es insultantemente alto
+        const base = 15000;
+        const factorEquipo = Math.max(1, this.estado.equipo * 0.15);
+        const bonoRep = 1 + (this.estado.reputacion/200);
+        const pago = Math.floor(base * factorEquipo * bonoRep);
+        this.estado.caja += pago;
+        this.estado.ingresosTotales += pago;
+        this.estado.moral = Math.max(0, this.estado.moral - 3);
+        this.log(`Trabajo por encargo completado: +$${pago.toLocaleString()}`);
+        this.actualizarUI();
+    }
+
+    invertirMarketing(){
+        const coste = 25000;
+        if (this.estado.caja < coste){ this.notificar('SIN FONDOS', 'No tienes suficiente caja para marketing.'); return; }
+        this.estado.caja -= coste;
+        this.estado.hype = Math.min(100, this.estado.hype + 20);
+        this.log('Campaña de marketing: hype aumentado.');
+        this.actualizarUI();
+    }
+
+    entrenarEquipo(){
+        const coste = 60000;
+        if (this.estado.caja < coste){ this.notificar('SIN FONDOS','No hay fondos para formación.'); return; }
+        this.estado.caja -= coste;
+        // mejora pequeña en habilidades
+        this.estado.empleados.forEach(e => {
+            e.coding = Math.min(100, e.coding + this.rand(2,6));
+            e.design = Math.min(100, e.design + this.rand(2,6));
+            e.art = Math.min(100, e.art + this.rand(2,6));
+            e.qa = Math.min(100, e.qa + this.rand(2,6));
+            e.moral = Math.min(100, e.moral + 3);
+        });
+        this.log('Formación completada: habilidades del equipo mejoradas.');
+        this.actualizarUI();
+    }
+
+    moverOficina(){
+        const coste = 120000;
+        if (this.estado.caja < coste || this.estado.nivelOficina >= 5){ this.notificar('No disponible','No puedes mejorar la oficina ahora.'); return; }
+        this.estado.caja -= coste;
+        this.estado.nivelOficina++;
+        this.estado.maxEquipo += 15;
+        this.estado.moral = Math.min(100, this.estado.moral + 8);
+        this.log('Oficina mejorada: más capacidad y moral.');
+        this.actualizarUI();
+    }
+
+    reiniciarJuego(){
+        if (!confirm('¿Empezar una partida nueva? Se perderá el progreso actual.')) return;
+        localStorage.removeItem('tycoon_save_es');
+        location.reload();
+    }
+
+    // Crear nuevo proyecto (modal simple integrado en prompt para rapidez)
+    iniciarProyecto(){
+        // pedimos datos básicos con inputs nativos simples (podemos mejorar UI luego)
+        const genero = prompt('Género (accion, rpg, estrategia, puzzle, terror, simulacion):','accion');
+        if (!genero) return;
+        const tema = prompt('Tema (espacial, medieval, cyberpunk, fantasia, zombies, deportes):','espacial');
+        if (!tema) return;
+        const plataforma = prompt('Plataforma (pc, consola, movil, vr):','pc');
+        if (!plataforma) return;
+        const presupuesto = parseInt(prompt('Presupuesto en $ (ej. 80000):','150000'));
+        if (isNaN(presupuesto) || presupuesto < 10000){ this.notificar('ERROR','Presupuesto inválido'); return; }
+        if (this.estado.caja < presupuesto){ this.notificar('SIN FONDOS','No tienes suficiente dinero para financiar el proyecto'); return; }
+        this.estado.caja -= presupuesto;
+        this.estado.proyectoActivo = {
+            genero, tema, plataforma,
+            presupuesto,
+            progreso:0,
+            calidad:10,
+            mesesDesarrollo:0,
+            assigned: []
+        };
+        this.log(`Proyecto iniciado: ${genero} / ${tema} en ${plataforma}`);
+        this.actualizarUI();
+    }
+
+    // Asignación automática: elige hasta maxAssigned empleados mejor adaptados
+    autoAsignar(proy){
+        const pool = this.estado.empleados.slice();
+        // score por empleado en relación al genero
+        pool.sort((a,b) => this.puntuacionEmpleadoParaProyecto(b,proy) - this.puntuacionEmpleadoParaProyecto(a,proy));
+        const asignados = pool.slice(0, Math.min(this.config.maxAssigned, pool.length));
+        proy.assigned = asignados.map(e => e.id);
+        return proy.assigned;
+    }
+
+    puntuacionEmpleadoParaProyecto(emp, proy){
+        // heurística simple: diferentes pesos por género
+        let w = {coding:0.25, design:0.25, art:0.25, qa:0.25};
+        if (proy.genero==='accion') w = {coding:0.45, design:0.2, art:0.15, qa:0.2};
+        if (proy.genero==='rpg') w = {design:0.35, art:0.3, coding:0.2, qa:0.15};
+        if (proy.genero==='terror') w = {art:0.4, design:0.3, coding:0.15, qa:0.15};
+        if (proy.genero==='simulacion') w = {coding:0.4, qa:0.3, design:0.2, art:0.1};
+        const score = emp.coding*w.coding + emp.design*w.design + emp.art*w.art + emp.qa*w.qa;
+        return score * (emp.moral/100) * (1 + (emp.level-1)*0.05);
+    }
+
+    // Desarrollo: un mes de trabajo -> añadir progreso y calidad según contribuciones de empleados
+    desarrollarMes(){
+        const p = this.estado.proyectoActivo;
+        if (!p) return;
+        p.mesesDesarrollo++;
+        // asignar si no hay nadie
+        if (!p.assigned || p.assigned.length===0) this.autoAsignar(p);
+
+        // calcular contribuciones por empleado
+        let progresoTotal = 0;
+        let calidadTotal = 0;
+        p.assigned.forEach(id => {
+            const emp = this.estado.empleados.find(e => e.id===id);
+            if (!emp) return;
+            // cada role aporta distinto:
+            // Programador -> progreso (coding), Designer/Artist -> calidad, QA -> reduce bugs (mejora calidad)
+            const cod = emp.coding/100;
+            const des = emp.design/100;
+            const art = emp.art/100;
+            const qa  = emp.qa/100;
+            // productividad y moral
+            const prodFactor = (emp.productivity/100) * (emp.moral/100);
+            // contribuciones mensuales: escala con presupuesto/nivel
+            const aporteProgreso = (cod*0.6 + des*0.15 + art*0.1 + qa*0.15) * prodFactor * (10 + Math.min(40, p.presupuesto/50000));
+            const aporteCalidad  = (art*0.45 + des*0.35 + qa*0.2) * prodFactor * 1.5;
+            progresoTotal += aporteProgreso;
+            calidadTotal += aporteCalidad;
+            // experiencia y leve subida de moral si no hay crunch
+            emp.exp += Math.floor(aporteProgreso/3);
+            if (!this.estado.crunch) emp.moral = Math.min(100, emp.moral + 0.5);
+            else emp.moral = Math.max(0, emp.moral - 1.5);
+            // animación de trabajo: estado 'trabajando' con probabilidad
+            emp.estado = 'trabajando';
         });
 
-    </script>
+        // aplicar progreso y calidad
+        // normalizamos para que 100 sea alcanzable en 6-18 meses dependiendo presupuesto/equipo
+        p.progreso += progresoTotal * 0.4; // escala conservadora
+        p.calidad += calidadTotal * 0.08;  // calidad se acumula lentamente
+        // añadir pequeñas fluctuaciones
+        p.calidad = Math.min(100, p.calidad + (Math.random()*2 - 1));
+
+        // control de progreso >100 => publicar
+        if (p.progreso >= 100) this.publicarJuego();
+        else this.log(`Proyecto ${p.genero}: +${Math.round(progresoTotal*0.4)}% progreso (mes ${p.mesesDesarrollo})`);
+    }
+
+    publicarJuego(){
+        const p = this.estado.proyectoActivo;
+        if (!p) return;
+        // calcular nota final combinando calidad, reputación, hype y presupuesto
+        let nota = 50;
+        nota += (p.calidad * 0.4);
+        nota += (this.estado.reputacion * 0.2);
+        nota += (this.estado.hype * 0.1);
+        nota += Math.min(15, (p.presupuesto / 100000) * 10);
+        // factor equipo/skills
+        if (p.assigned && p.assigned.length>0){
+            const avgSkill = p.assigned.reduce((s,id)=>{
+                const e = this.estado.empleados.find(x=>x.id===id);
+                return s + ((e.coding + e.design + e.art + e.qa)/4);
+            },0) / p.assigned.length;
+            nota += (avgSkill/100) * 10;
+        }
+        nota *= (0.95 + Math.random()*0.1); // variación
+        nota = Math.min(100, Math.max(20, Math.round(nota*10)/10));
+
+        // ventas: ya no es absurdo. Ventas dependen de nota, hype, plataforma y budget
+        // baseVentas = presupuesto * 1.5, modificado por nota
+        const baseVentas = p.presupuesto * 1.3;
+        const factorNota = 1 + ((nota - 50)/100); // si nota=100 => factor 1.5
+        const factorHype = 1 + (this.estado.hype/200);
+        const ventas = Math.floor(baseVentas * factorNota * factorHype);
+
+        // Efectos globales
+        this.estado.caja += ventas;
+        this.estado.ingresosTotales += ventas;
+        this.estado.reputacion = Math.min(100, this.estado.reputacion + (nota>=80 ? 8 : nota>=65 ? 3 : -4));
+        this.estado.hype = Math.max(0, this.estado.hype - 20);
+        this.estado.moral = Math.min(100, this.estado.moral + 6);
+
+        // guardar juego publicado
+        this.estado.juegos.push({
+            genero: p.genero, tema: p.tema, plataforma: p.plataforma,
+            presupuesto: p.presupuesto, meses: p.mesesDesarrollo, nota, ventas
+        });
+
+        // mostrar modal de reseñas
+        this.mostrarResena(p, nota, ventas);
+
+        this.log(`Publicado: ${p.genero} — Nota: ${nota} — Ventas: $${ventas.toLocaleString()}`);
+        // limpiar proyecto activo
+        this.estado.proyectoActivo = null;
+        this.actualizarUI();
+        this.comprobarLogros();
+    }
+
+    mostrarResena(proy, nota, ventas){
+        const modal = document.getElementById('reviewModal');
+        const content = document.getElementById('reviewContent');
+        content.innerHTML = `
+            <div style="display:flex; gap:12px; align-items:center;">
+                <div style="flex:1">
+                    <div style="font-weight:800; font-size:18px">${this.tituloReadable(proy)}</div>
+                    <div class="small muted">Meses de desarrollo: ${proy.mesesDesarrollo} — Presupuesto: $${proy.presupuesto.toLocaleString()}</div>
+                    <div style="height:10px"></div>
+                    <div style="font-weight:700; font-size:22px">${nota}/100</div>
+                    <div class="small muted" style="margin-top:6px">Ventas estimadas: $${ventas.toLocaleString()}</div>
+                </div>
+                <div style="width:300px;">
+                    <div class="small muted">Asignados al lanzamiento:</div>
+                    <div style="margin-top:8px;">
+                        ${ (proy.assigned && proy.assigned.length>0) ? proy.assigned.map(id=>{
+                            const e = this.estado.empleados.find(x=>x.id===id);
+                            return `<div style="font-size:13px; margin-bottom:6px;">${e ? e.nombre : 'Desconocido' } — Lvl${e ? e.level : 1}</div>`;
+                        }).join('') : '<div class="small muted">Nadie asignado</div>'}
+                    </div>
+                </div>
+            </div>
+            <div style="margin-top:12px; display:grid; grid-template-columns:repeat(3,1fr); gap:8px;">
+                <div style="background:var(--card); padding:8px; border-radius:6px;"><div class="small muted">Calidad</div><div style="font-weight:800">${Math.round(proy.calidad)}</div></div>
+                <div style="background:var(--card); padding:8px; border-radius:6px;"><div class="small muted">Meses</div><div style="font-weight:800">${proy.mesesDesarrollo}</div></div>
+                <div style="background:var(--card); padding:8px; border-radius:6px;"><div class="small muted">Presupuesto</div><div style="font-weight:800">$${proy.presupuesto.toLocaleString()}</div></div>
+            </div>
+        `;
+        modal.classList.add('active');
+    }
+
+    tituloReadable(proy){
+        return `${proy.genero.toUpperCase()} • ${proy.tema}`;
+    }
+
+    // UI helpers
+    actualizarUI(){
+        document.getElementById('uiYear').textContent = `${this.estado.año}-${String(this.estado.mes).padStart(2,'0')}`;
+        document.getElementById('uiCash').textContent = `$${Math.round(this.estado.caja/1000)}K`;
+        document.getElementById('uiTeam').textContent = `${this.estado.equipo} / ${this.estado.maxEquipo}`;
+        document.getElementById('uiRep').textContent = `${Math.round(this.estado.reputacion)}%`;
+        document.getElementById('uiHype').textContent = `${Math.round(this.estado.hype)}%`;
+
+        document.getElementById('cashFill').style.width = `${Math.min(100, (this.estado.caja/5000))}%`;
+        document.getElementById('teamFill').style.width = `${(this.estado.equipo/this.estado.maxEquipo)*100}%`;
+        document.getElementById('repFill').style.width = `${this.estado.reputacion}%`;
+        document.getElementById('hypeFill').style.width = `${this.estado.hype}%`;
+
+        // Proyecto
+        const pPanel = document.getElementById('projectName');
+        const progBar = document.getElementById('projectProgress');
+        const progText = document.getElementById('projectProgressText');
+        const stats = document.getElementById('projectStats');
+        if (this.estado.proyectoActivo){
+            const p = this.estado.proyectoActivo;
+            pPanel.textContent = `${p.genero.toUpperCase()} • ${p.tema}`;
+            progBar.style.width = `${Math.min(100, p.progreso)}%`;
+            progText.textContent = `${Math.min(100, Math.floor(p.progreso))}%`;
+            document.getElementById('projectMonths').textContent = `Meses: ${p.mesesDesarrollo}`;
+            stats.innerHTML = `<div class="small muted">Asignados: ${p.assigned ? p.assigned.length : 0}</div>
+                               <div class="small muted">Calidad: ${Math.round(p.calidad)}</div>
+                               <div class="small muted">Presupuesto: $${p.presupuesto.toLocaleString()}</div>`;
+        } else {
+            pPanel.textContent = 'Ninguno';
+            progBar.style.width = '0%';
+            progText.textContent = '0%';
+            stats.innerHTML = '';
+            document.getElementById('projectMonths').textContent = '';
+        }
+
+        // Lista empleados
+        const container = document.getElementById('employeeList');
+        container.innerHTML = '';
+        this.estado.empleados.forEach(emp => {
+            const card = document.createElement('div');
+            card.className = 'employee-card';
+            const avatar = document.createElement('div'); avatar.className = 'emp-avatar'; avatar.textContent = emp.nombre.split(' ')[0].slice(0,2).toUpperCase();
+            const meta = document.createElement('div'); meta.className = 'emp-meta';
+            const row1 = document.createElement('div'); row1.className = 'emp-name'; row1.textContent = `${emp.nombre} • ${emp.role || 'General'}`;
+            const row2 = document.createElement('div'); row2.className = 'emp-small'; row2.textContent = `Lvl ${emp.level} • $${emp.salarioMensual}/mes • Moral ${Math.round(emp.moral)}%`
+            const bars = document.createElement('div'); bars.className = 'stat-bars';
+            // stat mini rows
+            const sCoding = this.createStatMini('Prog', emp.coding, '#00b8ff');
+            const sDesign = this.createStatMini('Diseño', emp.design, '#9b59ff');
+            const sArt = this.createStatMini('Arte', emp.art, '#ff66b2');
+            const sQA = this.createStatMini('QA', emp.qa, '#ffd166');
+            bars.appendChild(sCoding); bars.appendChild(sDesign); bars.appendChild(sArt); bars.appendChild(sQA);
+
+            meta.appendChild(row1); meta.appendChild(row2); meta.appendChild(bars);
+
+            const actions = document.createElement('div');
+            const viewBtn = document.createElement('button'); viewBtn.className='btn'; viewBtn.textContent='VER';
+            viewBtn.addEventListener('click', ()=> this.abrirPanelEmpleado(emp));
+            actions.appendChild(viewBtn);
+
+            card.appendChild(avatar); card.appendChild(meta); card.appendChild(actions);
+            container.appendChild(card);
+        });
+
+        // Guardado automático (cada vez que actualizamos por tick)
+        this.autoguardar();
+    }
+
+    createStatMini(label, value, color){
+        const wrap = document.createElement('div');
+        wrap.className = 'stat-mini';
+        const lbl = document.createElement('div'); lbl.style.width='48px'; lbl.style.fontSize='11px'; lbl.style.color='var(--muted)'; lbl.textContent = label;
+        const barc = document.createElement('div'); barc.className = 'bar-mini';
+        const fill = document.createElement('div'); fill.className = 'fill'; fill.style.width = `${value}%`; fill.style.background = `linear-gradient(90deg, ${color}, #222)`;
+        barc.appendChild(fill);
+        wrap.appendChild(lbl); wrap.appendChild(barc);
+        return wrap;
+    }
+
+    abrirPanelEmpleado(emp){
+        // Modal con acciones: entrenar, promocionar, despedir
+        const modal = document.createElement('div');
+        modal.className = 'modal active';
+        modal.style.zIndex = 3000;
+        const box = document.createElement('div'); box.className='modal-box';
+        box.innerHTML = `<div class="title">${emp.nombre} — ${emp.role || 'General'}</div>
+            <div style="display:flex; gap:8px; margin-top:8px;">
+                <div style="flex:1;">
+                    <div class="small muted">Nivel</div><div style="font-weight:800">${emp.level}</div>
+                    <div style="height:8px"></div>
+                    <div class="small muted">Experiencia</div><div style="font-weight:700">${emp.exp}</div>
+                </div>
+                <div style="flex:1;">
+                    <div class="small muted">Sueldo</div><div style="font-weight:800">$${emp.salarioMensual}/mes</div>
+                    <div style="height:8px"></div>
+                    <div class="small muted">Moral</div><div style="font-weight:700">${Math.round(emp.moral)}%</div>
+                </div>
+            </div>
+            <div style="margin-top:12px; display:flex; gap:8px;">
+                <button class="btn" id="trainEmp">Entrenar ($8000)</button>
+                <button class="btn" id="promoteEmp">Promocionar</button>
+                <button class="btn danger" id="fireEmp">Despedir</button>
+                <button class="btn" id="closeEmp">Cerrar</button>
+            </div>`;
+        modal.appendChild(box);
+        document.body.appendChild(modal);
+
+        box.querySelector('#closeEmp').addEventListener('click', ()=> document.body.removeChild(modal));
+        box.querySelector('#trainEmp').addEventListener('click', ()=>{
+            if (this.estado.caja < 8000) { this.notificar('SIN FONDOS','No hay dinero para entrenar.'); return; }
+            this.estado.caja -= 8000;
+            emp.coding = Math.min(100, emp.coding + this.rand(3,7));
+            emp.design = Math.min(100, emp.design + this.rand(3,7));
+            emp.art = Math.min(100, emp.art + this.rand(3,7));
+            emp.qa = Math.min(100, emp.qa + this.rand(3,7));
+            emp.moral = Math.min(100, emp.moral + 5);
+            this.log(`${emp.nombre} ha recibido entrenamiento.`);
+            this.actualizarUI();
+        });
+        box.querySelector('#promoteEmp').addEventListener('click', ()=>{
+            if (emp.exp < 100){ this.notificar('INFO','Necesita 100 de experiencia para promocionar'); return; }
+            emp.level++; emp.exp -= 100; emp.salarioMensual = Math.floor(emp.salarioMensual * 1.2); emp.productivity = Math.min(200, emp.productivity + 10);
+            this.log(`${emp.nombre} promocionado a nivel ${emp.level}`);
+            this.actualizarUI();
+        });
+        box.querySelector('#fireEmp').addEventListener('click', ()=>{
+            if (!confirm(`¿Despedir a ${emp.nombre}?`)) return;
+            this.estado.empleados = this.estado.empleados.filter(e => e.id !== emp.id);
+            this.estado.equipo = this.estado.empleados.length;
+            this.log(`Despedido: ${emp.nombre}`);
+            document.body.removeChild(modal);
+            this.actualizarUI();
+        });
+    }
+
+    // Guardado y carga simple
+    autoguardar(){
+        try {
+            const data = {
+                estado: this.estado,
+                empleados: this.estado.empleados.map(e => ({
+                    id:e.id, nombre:e.nombre, role:e.role, coding:e.coding, design:e.design, art:e.art, qa:e.qa, salarioMensual:e.salarioMensual, moral:e.moral, level:e.level, exp:e.exp, productivity:e.productivity
+                }))
+            };
+            localStorage.setItem('tycoon_save_es', JSON.stringify(data));
+        } catch(e){ console.warn('No se pudo guardar', e); }
+    }
+    cargarJuego(){
+        try {
+            const raw = localStorage.getItem('tycoon_save_es');
+            if (!raw) return;
+            const data = JSON.parse(raw);
+            Object.assign(this.estado, data.estado);
+            this.estado.empleados = data.empleados.map(o => {
+                const e = new Empleado(o.nombre, this);
+                Object.assign(e, o);
+                return e;
+            });
+            this.estado.equipo = this.estado.empleados.length;
+            this.log('Partida cargada desde localStorage');
+            this.actualizarUI();
+        } catch(e){ console.warn('Error cargando guardado', e); }
+    }
+
+    // Utilitarios
+    rand(a,b){ return Math.floor(a + Math.random()*(b-a+1)); }
+
+    log(text, tipo='info'){
+        const el = document.createElement('div'); el.className='event-item';
+        el.innerHTML = `<div style="font-size:11px; color:var(--muted)">${this.estado.año}-${String(this.estado.mes).padStart(2,'0')}</div><div>${text}</div>`;
+        const container = document.getElementById('eventLog');
+        container.insertBefore(el, container.firstChild);
+        while (container.children.length > 20) container.removeChild(container.lastChild);
+    }
+    notificar(titulo, texto){
+        const n = document.getElementById('notif');
+        n.innerHTML = `<strong>${titulo}</strong><div style="margin-top:6px">${texto}</div>`;
+        n.classList.add('show');
+        setTimeout(()=> n.classList.remove('show'), 2800);
+    }
+
+    comprobarLogros(){
+        // Ejemplo simple
+        if (this.estado.juegos.length === 1) this.popupLogro('Primer lanzamiento', 'Has publicado tu primer juego');
+        if (this.estado.ingresosTotales >= 1000000) this.popupLogro('Millonario', 'Has superado $1,000,000 en ingresos');
+    }
+    popupLogro(t,desc){
+        const a = document.getElementById('ach');
+        a.innerHTML = `<div style="font-weight:800">${t}</div><div style="font-size:12px">${desc}</div>`;
+        a.classList.add('show');
+        setTimeout(()=> a.classList.remove('show'), 3500);
+    }
+}
+
+/* ===== Clase empleado ===== */
+let _EMP_ID = 1;
+class Empleado {
+    constructor(nombre, juego){
+        this.id = _EMP_ID++;
+        this.nombre = nombre;
+        this.role = null;
+        this.coding = this.rand(40,80);
+        this.design = this.rand(30,75);
+        this.art = this.rand(20,70);
+        this.qa = this.rand(30,85);
+        this.level = 1;
+        this.exp = 0;
+        this.productivity = this.rand(90,120);
+        this.moral = this.rand(60,90);
+        this.salarioMensual = 3000 + Math.floor(Math.random()*2500);
+        this.estado = 'idle'; // idle, trabajando
+        this.juego = juego;
+    }
+    rand(a,b){ return Math.floor(a + Math.random()*(b-a+1)); }
+}
+
+/* ===== Inicializar juego ===== */
+const game = new JuegoTycoon();
+game.cargarJuego();
+
+/* Teclas: espacio -> acelerar temporal (reduce tickMs cuando se mantiene) */
+let acelerando = false;
+document.addEventListener('keydown', (e) => {
+    if (e.code === 'Space') {
+        if (!acelerando){
+            acelerando = true;
+            clearInterval(game.tickHandle);
+            game.tickHandle = setInterval(()=> game.tick(), Math.max(400, game.config.tickMs/3));
+            document.getElementById('autoplayBtn').textContent = 'AUTO: (Acel)';
+        }
+        e.preventDefault();
+    }
+});
+document.addEventListener('keyup', (e) => {
+    if (e.code === 'Space') {
+        acelerando = false;
+        clearInterval(game.tickHandle);
+        game.tickHandle = setInterval(()=> game.tick(), game.config.tickMs);
+        document.getElementById('autoplayBtn').textContent = game.estado.autoplay ? 'AUTO: ON' : 'AUTO: OFF';
+    }
+});
+
+/* Exponer funciones para botones con nombres en español */
+game.abrirContratacion = game.abrirContratacion.bind(game);
+game.invertirMarketing = game.invertirMarketing.bind(game);
+game.entrenarEquipo = game.entrenarEquipo.bind(game);
+game.moverOficina = game.moverOficina.bind(game);
+game.reiniciarJuego = game.reiniciarJuego.bind(game);
+game.contratoRapido = game.contratoRapido.bind(game);
+game.iniciarProyecto = game.iniciarProyecto.bind(game);
+game.continuarMes = game.continuarMes.bind(game);
+game.toggleAutoplay = game.toggleAutoplay.bind(game);
+game.abrirPanelEmpleado = game.abrirPanelEmpleado.bind(game);
+
+/* Guardar cada 60s por seguridad */
+setInterval(()=> game.autoguardar(), 60000);
+
+</script>
 </body>
 </html>
